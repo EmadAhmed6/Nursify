@@ -28,48 +28,6 @@ router.post("/resend-otp", authLimiter, resendOTP);
 router.get("/me", verifyToken, getMe);
 router.post("/refresh-token", verifyRefreshToken, handleRefreshToken);
 
-// Github OAuth
-router.get(
-  "/github",
-  passport.authenticate("github", { scope: ["user:email"] }),
-);
-
-router.get(
-  "/github/callback",
-  passport.authenticate("github", {
-    session: false,
-    failureRedirect: `${process.env.FRONTEND_URL}/auth/login?error=github_failed`,
-  }),
-  async (req: Request, res: Response) => {
-    try {
-      const user = req.user as any;
-      if (!user) {
-        res.redirect(
-          `${process.env.FRONTEND_URL}/auth/login?error=user_not_found`,
-        );
-        return;
-      }
-      const token = user.generateToken();
-      const refreshToken = user.generateRefreshToken();
-      user.refreshToken = refreshToken;
-      await user.save({ validateBeforeSave: false });
-
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
-
-      res.redirect(
-        `${process.env.FRONTEND_URL}/auth/callback?token=${token}&provider=github`,
-      );
-    } catch (err) {
-      res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=auth_failed`);
-    }
-  },
-);
-
 // Google OAuth
 router.get(
   "/google",
@@ -111,7 +69,6 @@ router.get(
     }
   },
 );
-
 
 router.get("/current-user", (req: Request, res: Response) => {
   if (req.isAuthenticated()) {

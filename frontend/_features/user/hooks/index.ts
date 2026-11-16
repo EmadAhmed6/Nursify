@@ -12,5 +12,5 @@ export * from "./useGetUserFollowing";
 export * from "./useBlockUser";
 export * from "./useUnblockUser";
 export * from "./useGetBlockedUsers";
-
+export * from "./useLeaderboard";
 

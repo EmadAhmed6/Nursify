@@ -91,6 +91,25 @@ const createComment = asyncHandler(async (req, res) => {
         res.status(404).json({ success: false, message: "Post was not found" });
         return;
     }
+    const currentUserId = req.user?.id;
+    if (currentUserId && post.user) {
+        const authorId = post.user.toString();
+        if (authorId !== currentUserId) {
+            const currentUser = await User.findById(currentUserId);
+            const postOwner = await User.findById(authorId);
+            if (currentUser && postOwner) {
+                const isBlockedByMe = currentUser.blockUsers?.some((id) => id.toString() === authorId);
+                const hasBlockedMe = postOwner.blockUsers?.some((id) => id.toString() === currentUserId);
+                if (isBlockedByMe || hasBlockedMe) {
+                    res.status(403).json({
+                        success: false,
+                        message: "You cannot comment on this post due to block status",
+                    });
+                    return;
+                }
+            }
+        }
+    }
     let commentImage = {
         url: "",
         publicId: "",
@@ -114,7 +133,6 @@ const createComment = asyncHandler(async (req, res) => {
     await newComment.save();
     const finalComment = await Comment.findById(newComment._id).populate("user", ["_id", "username", "fullName", "profilePicture", "jobTitle", "bio"]);
     await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: 1 } });
-    const currentUserId = req.user?.id;
     if (post.user.toString() !== currentUserId) {
         await Notification.create({
             recipient: post.user,
@@ -157,9 +175,9 @@ const updateComment = asyncHandler(async (req, res) => {
         return;
     }
     const commentOwner = await User.findById(comment.user);
-    if (commentOwner?.role === "SuperAdmin" &&
+    if (commentOwner?.role === "superadmin" &&
         comment.user.toString() !== req.user?.id &&
-        req.user?.role !== "SuperAdmin") {
+        req.user?.role !== "superadmin") {
         res.status(403).json({
             success: false,
             message: "You cannot edit a SuperAdmin's comment",
@@ -213,9 +231,9 @@ const deleteComment = asyncHandler(async (req, res) => {
     }
     const comment = await Comment.findById(new Types.ObjectId(commentId));
     const commentOwner = await User.findById(comment?.user);
-    if (commentOwner?.role === "SuperAdmin" &&
+    if (commentOwner?.role === "superadmin" &&
         comment?.user.toString() !== req.user?.id &&
-        req.user?.role !== "SuperAdmin") {
+        req.user?.role !== "superadmin") {
         res.status(403).json({
             success: false,
             message: "You cannot delete a SuperAdmin's comment",

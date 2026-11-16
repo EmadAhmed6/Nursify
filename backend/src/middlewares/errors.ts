@@ -11,20 +11,41 @@ const errorHandler = (
   res: Response,
   next: NextFunction,
 ) => {
+  console.error("Cloudinary/Server Error:", err);
+
+  const isDev = process.env.NODE_ENV !== "production";
+
   if (err.name === "CastError") {
-    return res
-      .status(400)
-      .json({ message: `Invalid ${err.path || "ID format"}: ${err.value}` });
+    return res.status(400).json({
+      success: false,
+      message: `Invalid ${err.path || "ID format"}: ${err.value}`,
+      ...(isDev && { stack: err.stack }),
+    });
   }
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  return res.status(statusCode).json({ message: err.message });
+
+  if (err.name === "MulterError") {
+    return res.status(400).json({
+      success: false,
+      message: `File upload error: ${err.message}`,
+      ...(isDev && { stack: err.stack }),
+    });
+  }
+
+  const statusCode = res.statusCode === 200 ? (err.statusCode || 500) : res.statusCode;
+
+  return res.status(statusCode).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+    ...(isDev && { stack: err.stack }),
+  });
 };
 
 const sendError = (res: Response, statusCode: number, errorMessage: string) => {
+  const isDev = process.env.NODE_ENV !== "production";
   return res.status(statusCode).json({
     success: false,
-    message: "Request failed",
-    data: { message: errorMessage },
+    message: errorMessage,
+    ...(isDev && { stack: new Error(errorMessage).stack }),
   });
 };
 

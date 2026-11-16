@@ -20,7 +20,6 @@ export interface AdminTranslations {
   allProviders: string;
   localProvider: string;
   googleProvider: string;
-  githubProvider: string;
   previousPage: string;
   nextPage: string;
   pageOf: string;
@@ -49,7 +48,6 @@ export const adminTranslations: Record<Language, AdminTranslations> = {
     allProviders: "All Methods",
     localProvider: "Email & Password",
     googleProvider: "Google OAuth",
-    githubProvider: "GitHub OAuth",
     previousPage: "Previous",
     nextPage: "Next",
     pageOf: "Page",
@@ -76,7 +74,6 @@ export const adminTranslations: Record<Language, AdminTranslations> = {
     allProviders: "كل الطرق",
     localProvider: "إيميل وباسورد",
     googleProvider: "جوجل",
-    githubProvider: "جيت هاب",
     previousPage: "السابق",
     nextPage: "التالي",
     pageOf: "صفحة",

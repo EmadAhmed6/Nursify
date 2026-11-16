@@ -9,6 +9,9 @@ export interface ForgotPasswordData {
   email: string;
 }
 
+export type UserRole = "student" | "admin" | "superadmin";
+export type UserProvider = "local" | "google";
+
 export interface AuthMe {
   _id: string;
   fullName?: string;
@@ -16,13 +19,13 @@ export interface AuthMe {
   jobTitle?: string;
   email: string;
   isVerified?: boolean;
-  postsCount: number;
+  subjectsCount: number;
   profilePicture: {
     url: string;
     publicId: string;
   };
-  role: "User" | "Admin" | "SuperAdmin";
-  provider?: "local" | "google" | "github";
+  role: UserRole;
+  provider?: UserProvider;
   followers?: string[];
   following?: string[];
   blockUsers?: string[];

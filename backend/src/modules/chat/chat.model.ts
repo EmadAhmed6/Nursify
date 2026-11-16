@@ -1,114 +1,39 @@
-import mongoose, { model, Schema, Types } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
-export interface IReaction {
-  user: Types.ObjectId;
-  type: string;
-}
-
-export interface IChat {
+export interface IGlobalMessage extends Document {
   sender: Types.ObjectId;
-  recipient: Types.ObjectId;
-  message: string;
-  imageUrl?: string;
-  fileUrl?: string;
-  fileName?: string;
-  audioUrl?: string;
-  replyTo?: Types.ObjectId;
-  isDeleted: boolean;
-  isRead: boolean;
-  isEdited?: boolean;
-  isForwarded?: boolean;
-  isPinned?: boolean;
-  isStarred?: boolean;
-  reactions?: IReaction[];
+  content: string;
+  replyTo?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const ChatSchema = new Schema(
+const GlobalMessageSchema = new Schema<IGlobalMessage>(
   {
     sender: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
-    recipient: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    content: {
+      type: String,
       required: true,
-    },
-    message: {
-      type: String,
-      default: "",
-    },
-    imageUrl: {
-      type: String,
-      default: "",
-    },
-    fileUrl: {
-      type: String,
-      default: "",
-    },
-    fileName: {
-      type: String,
-      default: "",
-    },
-    audioUrl: {
-      type: String,
+      trim: true,
+      maxLength: 2000,
     },
     replyTo: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Chat",
-    },
-    isForwarded: {
-      type: Boolean,
-      default: false,
-    },
-    isPinned: {
-      type: Boolean,
-      default: false,
-    },
-    isStarred: {
-      type: Boolean,
-      default: false,
-    },
-    isDeleted: {
-      type: Boolean,
-      default: false,
-    },
-    isRead: {
-      type: Boolean,
-      default: false,
-    },
-    isEdited: {
-      type: Boolean,
-      default: false,
-    },
-    reactions: [
-      {
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-          required: true,
-        },
-        type: {
-          type: String,
-          required: true,
-        },
-      },
-    ],
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
+      type: Schema.Types.ObjectId,
+      ref: "GlobalMessage",
+      default: null,
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
-const Chat = model<IChat>("Chat", ChatSchema);
-
-export default Chat;
+export const GlobalMessage = model<IGlobalMessage>(
+  "GlobalMessage",
+  GlobalMessageSchema,
+);

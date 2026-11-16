@@ -1,52 +1,26 @@
-export interface ChatUser {
+export interface ChatSender {
   _id: string;
-  username: string;
   fullName?: string;
+  username: string;
   profilePicture?: {
     url?: string;
-    publicId?: string;
+    publicId?: string | null;
   };
-  role?: string;
-  jobTitle?: string;
-  bio?: string;
+  role?: "student" | "admin" | "superadmin";
 }
 
-
-export interface ChatReaction {
-  user: ChatUser | string;
-  type: "like" | "love" | "care" | "haha" | "wow" | "sad" | "angry" | "eggs" | string;
-}
-
-export interface ChatMessage {
+export interface RepliedMessage {
   _id: string;
-  sender: ChatUser | string;
-  recipient: ChatUser | string;
-  message: string;
-  imageUrl?: string;
-  fileUrl?: string;
-  fileName?: string;
-  audioUrl?: string;
-  isDeleted: boolean;
-  isRead: boolean;
-  isEdited?: boolean;
-  isForwarded?: boolean;
-  isPinned?: boolean;
-  isStarred?: boolean;
-  reactions?: ChatReaction[];
-  replyTo?: ChatMessage | string | null;
+  sender: ChatSender;
+  content: string;
+  createdAt?: string;
+}
+
+export interface GlobalChatMessage {
+  _id: string;
+  sender: ChatSender;
+  content: string;
+  replyTo?: RepliedMessage | null;
   createdAt: string;
-  updatedAt: string;
-}
-
-export interface ChatConversation {
-  user: ChatUser;
-  lastMessage: ChatMessage;
-  unreadCount: number;
-}
-
-export interface SendMessagePayload {
-  recipientId: string;
-  message?: string;
-  file?: File | null;
-  replyTo?: string;
+  updatedAt?: string;
 }

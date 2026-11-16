@@ -1,8 +1,5 @@
 import jwt from "jsonwebtoken";
-import { Post } from "../modules/posts/post.model.js";
-import { Comment } from "../modules/comment/comment.model.js";
 import { Types } from "mongoose";
-import { decode } from "punycode";
 const verifyToken = (req, res, next) => {
     let token = req.headers.authorization;
     const secret = process.env.JWT_SECRET_KEY;
@@ -40,7 +37,7 @@ const verifyRefreshToken = (req, res, next) => {
     }
     try {
         const decoded = jwt.verify(refreshToken, secret);
-        req.user = { id: decoded.id, role: decoded.role || "User" };
+        req.user = { id: decoded.id, role: decoded.role || "student" };
         next();
     }
     catch (err) {
@@ -49,6 +46,28 @@ const verifyRefreshToken = (req, res, next) => {
             .json({ message: "Invalid or expired refresh token" });
     }
 };
+/**
+ * Generic RBAC middleware to restrict access to specific user roles
+ * Example: router.post('/', verifyToken, restrictTo('admin', 'superadmin'), controller)
+ */
+const restrictTo = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        const userRole = (req.user.role || "").toLowerCase();
+        const allowed = roles.map((r) => r.toLowerCase());
+        if (!allowed.includes(userRole)) {
+            return res.status(403).json({
+                success: false,
+                message: "Forbidden",
+                data: { message: "You do not have permission to perform this action" },
+            });
+        }
+        next();
+    };
+};
+const authorize = restrictTo;
 const verifyAuthorizedToken = (req, res, next) => {
     verifyToken(req, res, () => {
         if (!req.user) {
@@ -59,9 +78,10 @@ const verifyAuthorizedToken = (req, res, next) => {
             (typeof userId !== "string" || !Types.ObjectId.isValid(userId))) {
             return res.status(400).json({ message: "Invalid user ID" });
         }
+        const userRole = (req.user.role || "").toLowerCase();
         if (req.user.id === userId ||
-            req.user.role === "Admin" ||
-            req.user.role === "SuperAdmin") {
+            userRole === "admin" ||
+            userRole === "superadmin") {
             next();
         }
         else {
@@ -69,12 +89,27 @@ const verifyAuthorizedToken = (req, res, next) => {
         }
     });
 };
-const verifyAdminToken = (req, res, next) => {
-    verifyToken(req, res, () => {
+const verifyAdminToken = async (req, res, next) => {
+    verifyToken(req, res, async () => {
         if (!req.user) {
             return res.status(401).json({ message: "Unauthorized" });
         }
-        if (req.user.role === "Admin" || req.user.role === "SuperAdmin") {
+        let userRole = (req.user.role || "").toLowerCase();
+        // Fallback: if token has outdated role (e.g. user was promoted without re-login), check DB directly
+        if (userRole !== "admin" && userRole !== "superadmin") {
+            try {
+                const { User } = await import("../modules/user/user.model.js");
+                const freshUser = await User.findById(req.user.id).select("role");
+                if (freshUser && freshUser.role) {
+                    userRole = freshUser.role.toLowerCase();
+                    req.user.role = userRole;
+                }
+            }
+            catch (err) {
+                // continue with existing role check
+            }
+        }
+        if (userRole === "admin" || userRole === "superadmin") {
             next();
         }
         else {
@@ -85,71 +120,33 @@ const verifyAdminToken = (req, res, next) => {
     });
 };
 const verifySuperAdminToken = (req, res, next) => {
-    verifyToken(req, res, () => {
-        if (!req.user) {
-            return res.status(401).json({ message: "Unauthorized" });
-        }
-        if (req.user.role === "SuperAdmin") {
-            next();
-        }
-        else {
-            return res.status(403).json({
-                success: false,
-                message: "Forbidden",
-                data: { message: "Only super admin is allowed" },
-            });
-        }
-    });
-};
-const verifyPostOwner = (req, res, next) => {
     verifyToken(req, res, async () => {
         if (!req.user) {
             return res.status(401).json({ message: "Unauthorized" });
         }
-        const postId = req.params.postId;
-        if (!postId ||
-            typeof postId !== "string" ||
-            !Types.ObjectId.isValid(postId)) {
-            return res.status(400).json({ message: "Invalid post ID" });
+        let userRole = (req.user.role || "").toLowerCase();
+        if (userRole !== "superadmin") {
+            try {
+                const { User } = await import("../modules/user/user.model.js");
+                const freshUser = await User.findById(req.user.id).select("role");
+                if (freshUser && freshUser.role) {
+                    userRole = freshUser.role.toLowerCase();
+                    req.user.role = userRole;
+                }
+            }
+            catch (err) {
+                // continue
+            }
         }
-        const post = await Post.findById(postId);
-        if (!post) {
-            return res.status(404).json({ message: "Post was not found" });
-        }
-        if (post.user?.toString() === req.user.id ||
-            req.user.role === "Admin" ||
-            req.user.role === "SuperAdmin") {
+        if (userRole === "superadmin") {
             next();
         }
         else {
-            return res.status(403).json({ message: "You are not allowed" });
+            return res
+                .status(403)
+                .json({ message: "You are not allowed, only superadmin allowed" });
         }
     });
 };
-const verifyCommentOwner = (req, res, next) => {
-    verifyToken(req, res, async () => {
-        if (!req.user) {
-            return res.status(401).json({ message: "Unauthorized" });
-        }
-        const commentId = req.params.replyCommentId || req.params.commentId;
-        if (!commentId ||
-            typeof commentId !== "string" ||
-            !Types.ObjectId.isValid(commentId)) {
-            return res.status(400).json({ message: "Invalid comment ID" });
-        }
-        const comment = await Comment.findById(commentId);
-        if (!comment) {
-            return res.status(404).json({ message: "Comment was not found" });
-        }
-        if (comment.user.toString() === req.user.id ||
-            req.user.role === "Admin" ||
-            req.user.role === "SuperAdmin") {
-            next();
-        }
-        else {
-            return res.status(403).json({ message: "You are not allowed" });
-        }
-    });
-};
-export { verifyToken, verifyRefreshToken, verifyAuthorizedToken, verifyAdminToken, verifySuperAdminToken, verifyPostOwner, verifyCommentOwner, };
+export { verifyToken, verifyRefreshToken, restrictTo, authorize, verifyAuthorizedToken, verifyAdminToken, verifySuperAdminToken, };
 //# sourceMappingURL=verifyToken.js.map

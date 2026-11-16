@@ -1,4 +1,3 @@
-import GitHubStrategy, { type Profile as GitHubProfile } from "passport-github2";
 import passportGoogle, {
   type Profile as GoogleProfile,
 } from "passport-google-oauth20";
@@ -9,61 +8,6 @@ import bcrypt from "bcryptjs";
 const GoogleStrategy = passportGoogle.Strategy;
 
 const configurePassport = () => {
-  // GitHub Strategy
-  passport.use(
-    new GitHubStrategy.Strategy(
-      {
-        clientID: process.env.GITHUB_CLIENT_ID as string,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-        callbackURL: `${process.env.BACKEND_URL}/auth/github/callback`,
-      },
-      async (
-        accessToken: string,
-        refreshToken: string,
-        profile: GitHubProfile,
-        done: (error: any, user?: any, info?: any) => void,
-      ) => {
-        try {
-          const email =
-            profile.emails?.[0]?.value ??
-            `${profile.username || profile.id}@github.com`;
-          const githubPhoto = profile.photos?.[0]?.value ?? "";
-          let user = await User.findOne({ email });
-          if (user) {
-            if ((!user.profilePicture?.url || user.profilePicture.url === "") && githubPhoto) {
-              user.profilePicture = { url: githubPhoto, publicId: null };
-              await user.save({ validateBeforeSave: false });
-            }
-          } else {
-            const hashedPassword = await bcrypt.hash(
-              Math.random().toString(36).slice(-10),
-              10,
-            );
-            let username = profile.username || `user_${Date.now()}`;
-            if (await User.findOne({ username })) {
-              username = `${username}_${Math.floor(Math.random() * 1000)}`;
-            }
-            user = await User.create({
-              fullName: profile.displayName || "GitHub User",
-              username,
-              email,
-              password: hashedPassword,
-              provider: "github",
-              isVerified: true,
-              profilePicture: {
-                url: githubPhoto,
-                publicId: null,
-              },
-            });
-          }
-          return done(null, user);
-        } catch (err) {
-          return done(err);
-        }
-      },
-    ),
-  );
-
   // Google Strategy
   passport.use(
     new GoogleStrategy(
@@ -110,6 +54,7 @@ const configurePassport = () => {
               email,
               password: hashedPassword,
               provider: "google",
+              role: "student",
               isVerified: true,
               profilePicture: {
                 url: googlePhoto,
@@ -124,8 +69,6 @@ const configurePassport = () => {
       },
     ),
   );
-
-
 
   passport.serializeUser((user: any, done) => {
     done(null, user._id);

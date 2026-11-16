@@ -299,8 +299,8 @@
  *                 example: NewPassword123!
  *               role:
  *                 type: string
- *                 enum: [User, Admin, SuperAdmin]
- *                 example: User
+ *                 enum: [student, admin, superadmin]
+ *                 example: student
  *     responses:
  *       200:
  *         description: User updated successfully
@@ -330,7 +330,7 @@
  * /users/{userId}/toggle-admin:
  *   patch:
  *     summary: Toggle user Admin status (Super Admin Only)
- *     description: Toggle the role of a target user account between User and Admin. Restricted strictly to Super Administrators. Super Admin status cannot be self-toggled.
+ *     description: Toggle the role of a target user account between Student and Admin. Restricted strictly to Super Administrators. Super Admin status cannot be self-toggled.
  *     tags:
  *       - Users
  *     security:
@@ -724,12 +724,12 @@
  *           example: ahmed@example.com
  *         provider:
  *           type: string
- *           enum: [local, google, github]
+ *           enum: [local, google]
  *           example: local
  *         role:
  *           type: string
- *           enum: [User, Admin, SuperAdmin]
- *           example: User
+ *           enum: [student, admin, superadmin]
+ *           example: student
  *         isVerified:
  *           type: boolean
  *           example: true

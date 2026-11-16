@@ -2,7 +2,7 @@ import { unlink } from "node:fs/promises";
 import type { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
-import cloudinary from "../../utils/cloudinary.js";
+import { uploadToCloudinary } from "../../utils/cloudinary.js";
 import { sendError, successMsg } from "../../middlewares/errors.js";
 import { User } from "../user/user.model.js";
 import { Story } from "./story.model.js";
@@ -149,9 +149,8 @@ const createStory = asyncHandler(
 
     try {
       const uploaded = file
-        ? await cloudinary.uploader.upload(file.path, {
+        ? await uploadToCloudinary(file, "nursify/stories", {
             resource_type: isVideo ? "video" : "image",
-            access_mode: "public",
           })
         : null;
 
@@ -165,6 +164,10 @@ const createStory = asyncHandler(
 
       await story.populate(storyPopulation);
       successMsg(res, 201, "Story created successfully", story);
+    } catch (error: any) {
+      console.error("Cloudinary/Server Error:", error);
+      sendError(res, 500, error.message || "Failed to process story upload");
+      return;
     } finally {
       if (file) await unlink(file.path).catch(() => undefined);
     }

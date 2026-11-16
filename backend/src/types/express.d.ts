@@ -1,3 +1,5 @@
+import type { UserRole } from "../modules/user/user.schema.js";
+
 declare global {
   namespace Express {
     interface User {
@@ -5,7 +7,7 @@ declare global {
       _id?: any;
       userId?: string;
       username?: string;
-      role?: "User" | "Admin" | "SuperAdmin";
+      role?: UserRole;
       generateToken?: () => string;
     }
     interface Request {
@@ -13,7 +15,7 @@ declare global {
         id?: string;
         userId?: string;
         username?: string;
-        role?: "User" | "Admin" | "SuperAdmin";
+        role?: UserRole;
       };
     }
   }

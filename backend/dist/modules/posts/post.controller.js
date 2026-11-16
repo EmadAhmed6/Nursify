@@ -16,6 +16,19 @@ const getAllPosts = asyncHandler(async (req, res) => {
     if (search) {
         query.$or = [{ title: { $regex: search, $options: "i" } }];
     }
+    const currentUserId = req.user?.id;
+    if (currentUserId) {
+        const currentUser = await User.findById(currentUserId);
+        if (currentUser) {
+            const blockedIds = [
+                ...(currentUser.blockUsers || []).map((id) => id.toString()),
+                ...(currentUser.blockedByUsers || []).map((id) => id.toString()),
+            ];
+            if (blockedIds.length > 0) {
+                query.user = { $nin: blockedIds };
+            }
+        }
+    }
     const totalPosts = await Post.countDocuments(query);
     const posts = await Post.find(query)
         .populate("user", [
@@ -65,7 +78,7 @@ const getAllPosts = asyncHandler(async (req, res) => {
 });
 // GET POST BY ID
 const getPostById = asyncHandler(async (req, res) => {
-    const posts = await Post.findById(req.params.postId)
+    const post = await Post.findById(req.params.postId)
         .populate("user", [
         "_id",
         "username",
@@ -88,7 +101,30 @@ const getPostById = asyncHandler(async (req, res) => {
             },
         ],
     });
-    res.status(200).json({ success: true, data: posts });
+    if (!post) {
+        res.status(404).json({ success: false, message: "Post was not found" });
+        return;
+    }
+    const currentUserId = req.user?.id;
+    if (currentUserId && post.user) {
+        const authorId = post.user._id ? post.user._id.toString() : post.user.toString();
+        if (authorId !== currentUserId) {
+            const currentUser = await User.findById(currentUserId);
+            const authorUser = await User.findById(authorId);
+            if (currentUser && authorUser) {
+                const isBlockedByMe = currentUser.blockUsers?.some((id) => id.toString() === authorId);
+                const hasBlockedMe = authorUser.blockUsers?.some((id) => id.toString() === currentUserId);
+                if (isBlockedByMe || hasBlockedMe) {
+                    res.status(403).json({
+                        success: false,
+                        message: "You cannot view this post due to block status",
+                    });
+                    return;
+                }
+            }
+        }
+    }
+    res.status(200).json({ success: true, data: post });
     return;
 });
 // CREATE POST
@@ -196,9 +232,9 @@ const deletePost = asyncHandler(async (req, res) => {
         return;
     }
     const postOwner = await User.findById(post.user);
-    if (postOwner?.role === "SuperAdmin" &&
+    if (postOwner?.role === "superadmin" &&
         post.user.toString() !== req.user?.id &&
-        req.user?.role !== "SuperAdmin") {
+        req.user?.role !== "superadmin") {
         res
             .status(403)
             .json({ success: false, message: "You can't delete Owner post" });
@@ -230,6 +266,19 @@ const likePost = asyncHandler(async (req, res) => {
     if (!post) {
         res.status(404).json({ success: false, message: "Post was not found" });
         return;
+    }
+    const postOwner = await User.findById(post.user);
+    const currentUser = await User.findById(userId);
+    if (postOwner && currentUser && postOwner._id.toString() !== userId) {
+        const isBlockedByMe = currentUser.blockUsers?.some((id) => id.toString() === postOwner._id.toString());
+        const hasBlockedMe = postOwner.blockUsers?.some((id) => id.toString() === userId);
+        if (isBlockedByMe || hasBlockedMe) {
+            res.status(403).json({
+                success: false,
+                message: "You cannot interact with this post due to block status",
+            });
+            return;
+        }
     }
     const isLiked = post.likes.some((like) => like.toString() === userId);
     const userObjectId = new Types.ObjectId(userId);
@@ -276,6 +325,20 @@ const sharePost = asyncHandler(async (req, res) => {
             .status(404)
             .json({ success: false, data: { message: "Post was not found" } });
         return;
+    }
+    const currentUserId = req.user.id;
+    const postOwner = await User.findById(originalPost.user);
+    const currentUser = await User.findById(currentUserId);
+    if (postOwner && currentUser && postOwner._id.toString() !== currentUserId) {
+        const isBlockedByMe = currentUser.blockUsers?.some((id) => id.toString() === postOwner._id.toString());
+        const hasBlockedMe = postOwner.blockUsers?.some((id) => id.toString() === currentUserId);
+        if (isBlockedByMe || hasBlockedMe) {
+            res.status(403).json({
+                success: false,
+                message: "You cannot share this post due to block status",
+            });
+            return;
+        }
     }
     const sharedPostRecord = new Post({
         title: originalPost?.title,

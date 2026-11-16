@@ -13,6 +13,7 @@ import {
   blockUser,
   unblockUser,
   getBlockedUsers,
+  getLeaderboard,
 } from "./user.controller.js";
 import {
   verifyToken,
@@ -24,6 +25,7 @@ import { authLimiter } from "../../middlewares/limiter.js";
 const router = express.Router();
 
 router.route("/").get(verifyToken, getAllUsers);
+router.get("/leaderboard", verifyToken, getLeaderboard);
 router.get("/blocked-users", verifyToken, getBlockedUsers);
 router.patch("/:userId/toggle-admin", verifySuperAdminToken, toggleAdminStatus);
 router

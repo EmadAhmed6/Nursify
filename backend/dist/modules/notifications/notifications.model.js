@@ -12,30 +12,12 @@ const NotificationSchema = new Schema({
     },
     type: {
         type: String,
-        enum: [
-            "follow",
-            "comment",
-            "like",
-            "share",
-            "reply",
-            "like_comment",
-            "like_reply",
-        ],
+        enum: ["follow", "subject_update", "system"],
         required: true,
     },
-    post: {
+    subject: {
         type: mongoose.Schema.ObjectId,
-        ref: "Post",
-        required: false,
-    },
-    comment: {
-        type: mongoose.Schema.ObjectId,
-        ref: "Comment",
-        required: false,
-    },
-    reply: {
-        type: mongoose.Schema.ObjectId,
-        ref: "Reply",
+        ref: "Subject",
         required: false,
     },
     isRead: {

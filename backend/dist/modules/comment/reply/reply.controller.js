@@ -165,9 +165,9 @@ const updateReplyComment = asyncHandler(async (req, res) => {
         return;
     }
     const replyOwner = await User.findById(existingReply.user);
-    if (replyOwner?.role === "SuperAdmin" &&
+    if (replyOwner?.role === "superadmin" &&
         existingReply.user.toString() !== req.user?.id &&
-        req.user?.role !== "SuperAdmin") {
+        req.user?.role !== "superadmin") {
         res.status(403).json({
             success: false,
             message: "You cannot edit a SuperAdmin's reply",
@@ -229,9 +229,9 @@ const deleteReplyComment = asyncHandler(async (req, res) => {
         return;
     }
     const replyOwner = await User.findById(replyComment.user);
-    if (replyOwner?.role === "SuperAdmin" &&
+    if (replyOwner?.role === "superadmin" &&
         replyComment.user.toString() !== req.user?.id &&
-        req.user?.role !== "SuperAdmin") {
+        req.user?.role !== "superadmin") {
         res.status(403).json({
             success: false,
             message: "You cannot delete a SuperAdmin's reply",

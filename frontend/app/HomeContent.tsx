@@ -1,333 +1,251 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import Navbar from "@/_components/Navbar";
-import PostCard from "@/_components/PostCard";
-import PostCardSkeleton from "@/_components/PostCardSkeleton";
-import UserProfileSidebar from "@/_components/UserProfileSidebar";
-import CreatePostCard from "@/_components/CreatePostCard";
-import StoriesTray from "@/_components/StoriesTray";
-import { useGetPosts } from "@/_features/posts/hooks";
-import { getAllPosts } from "@/_features/posts/api/getAllPosts";
-import { Post } from "@/_features/posts/types/Post";
-import { FileText, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Cookies from "js-cookie";
-import { Text } from "@/_components/Text";
+import React, { useState } from "react";
 import Link from "next/link";
+import Navbar from "@/_components/Navbar";
+import UserProfileSidebar from "@/_components/UserProfileSidebar";
+import { Text } from "@/_components/Text";
+import { Button } from "@/components/ui/button";
+import { useGetSubjects } from "@/_features/subjects/hooks";
+import { useGetAuthMeQuery } from "@/_features/auth/hooks";
+import {
+  BookOpen,
+  Search,
+  Plus,
+  Video,
+  FileText,
+  Mic,
+  HelpCircle,
+  Loader2,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  GraduationCap,
+} from "lucide-react";
+import CreateSubjectModal from "@/_components/CreateSubjectModal";
 import { useLanguage } from "@/context/LanguageContext";
 
+const DEPARTMENTS = [
+  "All",
+  "General Nursing",
+  "Medical-Surgical",
+  "Critical Care",
+  "Pediatric Nursing",
+  "Maternal & Child Health",
+  "Mental Health",
+  "Community Health",
+];
+
 export default function HomeContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const token = Cookies.get("token");
-  const { t } = useLanguage();
+  const { isArabic } = useLanguage();
+  const { data: currentUser } = useGetAuthMeQuery();
 
-  const search = searchParams.get("search") || "";
-  const selectedCategory = searchParams.get("category") || "All";
+  const [search, setSearch] = useState("");
+  const [selectedDept, setSelectedDept] = useState("All");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Feed & Dynamic Pagination State
-  const [feedPosts, setFeedPosts] = useState<Post[]>([]);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
-  const [hasMore, setHasMore] = useState<boolean>(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
-  const {
-    data: initialPosts,
-    isLoading: isInitialLoading,
-    isError: isInitialError,
-    refetch,
-  } = useGetPosts({
-    pageNumber: 1,
+  const { data: subjectsData, isLoading } = useGetSubjects({
     search: search || undefined,
-    category: selectedCategory !== "All" ? selectedCategory : undefined,
+    department: selectedDept !== "All" ? selectedDept : undefined,
   });
 
-  const POSTS_PER_PAGE = 5;
+  const subjects = subjectsData?.subjects || [];
+  const isAdminOrSuperAdmin =
+    currentUser?.role === "admin" || currentUser?.role === "superadmin";
 
-  // Synchronize initial page results
-  useEffect(() => {
-    if (initialPosts) {
-      const postsArr = Array.isArray(initialPosts) ? initialPosts : initialPosts.posts || [];
-      const totalP = initialPosts.totalPages || 1;
-      setFeedPosts(postsArr);
-      setCurrentPage(1);
-      setHasMore(1 < totalP && postsArr.length >= POSTS_PER_PAGE);
-      setFetchError(null);
-    }
-  }, [initialPosts]);
-
-  const observerTargetRef = React.useRef<HTMLDivElement | null>(null);
-
-  const handleLoadMore = async () => {
-    if (isLoadingMore || !hasMore) return;
-    setIsLoadingMore(true);
-    setFetchError(null);
-
-    try {
-      const nextPage = currentPage + 1;
-      const response = await getAllPosts({
-        pageNumber: nextPage,
-        search: search || undefined,
-        category: selectedCategory !== "All" ? selectedCategory : undefined,
-      });
-
-      const newPosts = Array.isArray(response) ? response : response?.posts || [];
-      const totalP = response?.totalPages || 1;
-
-      if (newPosts && newPosts.length > 0) {
-        setFeedPosts((prev) => {
-          const existingIds = new Set(prev.map((p) => p._id));
-          const filteredNew = newPosts.filter((p) => !existingIds.has(p._id));
-          return [...prev, ...filteredNew];
-        });
-        setCurrentPage(nextPage);
-        if (nextPage >= totalP || newPosts.length < POSTS_PER_PAGE) {
-          setHasMore(false);
-        }
-      } else {
-        setHasMore(false);
-      }
-    } catch (err: any) {
-      setFetchError(
-        err?.response?.data?.message ||
-          "Failed to load more posts. Please try again.",
-      );
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  useEffect(() => {
-    const target = observerTargetRef.current;
-    if (!target) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          hasMore &&
-          !isLoadingMore &&
-          !isInitialLoading
-        ) {
-          handleLoadMore();
-        }
-      },
-      { threshold: 0.1, rootMargin: "200px" },
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [
-    hasMore,
-    isLoadingMore,
-    isInitialLoading,
-    currentPage,
-    search,
-    selectedCategory,
-  ]);
-
-  const handleCategorySelect = (category: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (category === "All") {
-      params.delete("category");
-    } else {
-      params.set("category", category);
-    }
-    params.delete("pageNumber");
-    params.delete("page");
-    router.push(`/?${params.toString()}`);
-  };
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const ArrowIcon = isArabic ? ArrowLeft : ArrowRight;
 
   return (
-    <div className="min-h-screen bg-bgPrimary text-textPrimary flex flex-col justify-between relative">
-      {/* Background Ambient Gradient */}
-      <div className="fixed inset-0 -z-50 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(128,128,128,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(128,128,128,0.02)_1px,transparent_1px)] bg-size:32px_32px" />
-        <div className="absolute top-[15%] left-[5%] w-96 h-96 rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute bottom-[20%] right-[5%] w-96 h-96 rounded-full bg-primary/5 blur-[120px]" />
-      </div>
-
+    <div className="min-h-screen bg-bgPrimary text-textPrimary flex flex-col justify-between">
       <Navbar />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8">
-        {/* Search indicator message */}
-        {search && (
-          <div className="mb-6 flex items-center justify-between p-3.5 rounded-xl bg-bgSecondary/60 border border-borderPrimary/40">
-            <Text as="span" size="xs" color="secondary">
-              {t.home.showingResults}{" "}
-              <strong className="text-textPrimary">"{search}"</strong>
-            </Text>
-            <button
-              onClick={() => router.push("/")}
-              className="text-xs font-bold text-primary hover:underline cursor-pointer"
-            >
-              <Text as="span" size="xs" font="bold" color="primary">
-                {t.home.clearSearch}
-              </Text>
-            </button>
-          </div>
-        )}
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Main Subjects Feed / Content */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Platform Welcome Banner */}
+            <div className="relative rounded-3xl p-6 sm:p-8 overflow-hidden bg-linear-to-r from-primary/15 via-primary/5 to-transparent border border-primary/20 shadow-md">
+              <div className="relative z-10 space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold">
+                  <GraduationCap className="h-4 w-4" />
+                  <span>
+                    {isArabic
+                      ? "المنصة التعليمية لطلاب التمريض"
+                      : "Nursing Education Platform"}
+                  </span>
+                </div>
 
-        {/* Main 2-Column Social Feed Layout (Sticky Sidebar + Single Vertical Column Feed) */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sticky Left Sidebar (Desktop Only) */}
-          <aside className="hidden lg:block lg:col-span-1 lg:sticky lg:top-24 self-start order-2 lg:order-1">
-            <UserProfileSidebar onOpenCreatePost={scrollToTop} />
-          </aside>
-
-          {/* Centered Single Column Vertical Posts Feed */}
-          <div className="lg:col-span-3 order-1 lg:order-2 max-w-2xl mx-auto w-full space-y-6">
-            <StoriesTray />
-
-            {/* Inline Post Creation Box right at top of feed */}
-            {token && <CreatePostCard />}
-
-            {isInitialLoading ? (
-              <div className="space-y-6">
-                {[1, 2, 3].map((idx) => (
-                  <PostCardSkeleton key={idx} />
-                ))}
-              </div>
-            ) : isInitialError ? (
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-3xl bg-bgSecondary/30 border border-borderPrimary/40">
-                <Text
-                  as="h3"
-                  size="lg"
-                  font="bold"
-                  color="primary"
-                  className="mb-2"
-                >
-                  Failed to load feed
+                <Text as="h1" size="2xl" font="black" color="primary" className="leading-tight sm:text-3xl">
+                  {isArabic ? "مرحباً بك في منصة Nursify" : "Welcome to Nursify"}
                 </Text>
-                <Text as="p" size="xs" color="secondary" className="mb-4">
-                  Please check your internet connection or backend server state.
-                </Text>
-                <Button
-                  onClick={() => refetch()}
-                  variant="outline"
-                  className="gap-2 rounded-xl text-xs font-bold"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Retry Loading Feed
-                </Button>
-              </div>
-            ) : feedPosts && feedPosts.length > 0 ? (
-              <div className="space-y-6">
-                {feedPosts.map((post) => (
-                  <PostCard key={post._id} post={post} />
-                ))}
 
-                {/* PostCard Skeleton when fetching next page */}
-                {isLoadingMore && (
+                <Text as="p" size="xs" color="secondary" className="leading-relaxed max-w-xl">
+                  {isArabic
+                    ? "منصتك المتكاملة لدراسة التمريض: محاضرات فيديو، ملخصات دراسية PDF، تسجيلات صوتية، واختبارات تفاعلية."
+                    : "Your all-in-one hub for nursing students: clinical lectures, downloadable study summaries, audio records, and interactive quizzes."}
+                </Text>
+
+                {isAdminOrSuperAdmin && (
                   <div className="pt-2">
-                    <PostCardSkeleton />
+                    <Button
+                      onClick={() => setIsCreateOpen(true)}
+                      className="rounded-xl text-xs font-bold gap-2 cursor-pointer shadow-md"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>{isArabic ? "إضافة مادة دراسية جديدة" : "Add Subject"}</span>
+                    </Button>
                   </div>
                 )}
+              </div>
+            </div>
 
-                {/* Sentinel element for automatic infinite scroll */}
-                <div
-                  ref={observerTargetRef}
-                  className="h-4 w-full pointer-events-none"
+            {/* Search & Department Filters */}
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute ltr:left-3.5 rtl:right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-textSecondary" />
+                <input
+                  type="text"
+                  placeholder={
+                    isArabic
+                      ? "ابحث باسم المادة، الكود، أو القسم..."
+                      : "Search by subject title, course code, or department..."
+                  }
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full ltr:pl-10 ltr:pr-4 rtl:pr-10 rtl:pl-4 py-2.5 text-xs rounded-xl bg-bgSecondary border border-borderPrimary text-textPrimary outline-none focus:ring-2 focus:ring-primary shadow-xs"
                 />
+              </div>
 
-                {/* End of Feed / Error indicator */}
-                <div className="pt-2 pb-8 flex flex-col items-center justify-center gap-3">
-                  {fetchError && (
-                    <div className="text-center space-y-2 mb-2">
-                      <Text
-                        as="p"
-                        size="xs"
-                        className="text-rose-500 font-semibold"
-                      >
-                        {fetchError}
-                      </Text>
-                      <Button
-                        onClick={handleLoadMore}
-                        variant="outline"
-                        size="sm"
-                        className="rounded-xl text-xs cursor-pointer"
-                      >
-                        Try Again
-                      </Button>
-                    </div>
-                  )}
+              {/* Department Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {DEPARTMENTS.map((dept) => (
+                  <button
+                    key={dept}
+                    type="button"
+                    onClick={() => setSelectedDept(dept)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                      selectedDept === dept
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-bgSecondary/80 text-textSecondary hover:text-textPrimary hover:bg-bgSecondary border border-borderPrimary/60"
+                    }`}
+                  >
+                    {dept}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                  {!hasMore && (
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-bgSecondary/40 border border-borderPrimary/30 text-xs text-textSecondary">
-                      <Text as="span" size="xs" color="secondary">
-                        {t.home.reachedEnd}
-                      </Text>
-                    </div>
-                  )}
-                </div>
+            {/* Subjects Grid */}
+            {isLoading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : subjects.length === 0 ? (
+              <div className="p-12 text-center rounded-3xl bg-bgSecondary/40 border border-borderPrimary/60">
+                <BookOpen className="h-10 w-10 mx-auto mb-2 text-textSecondary opacity-30" />
+                <Text as="h3" size="default" font="bold" color="primary" className="mb-1">
+                  {isArabic ? "لم نجد أي مادة دراسية" : "No Subjects Found"}
+                </Text>
+                <Text as="p" size="xs" color="secondary">
+                  {isArabic
+                    ? "جرب البحث بكلمات أخرى أو اختر قسماً آخر."
+                    : "Try searching with different keywords or select another department."}
+                </Text>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 px-4 text-center rounded-3xl bg-bgSecondary/30 border border-borderPrimary/40">
-                <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                  <FileText className="h-8 w-8" />
-                </div>
-                <Text
-                  as="h3"
-                  size="xl"
-                  font="bold"
-                  color="primary"
-                  className="mb-2"
-                >
-                  {t.home.noArticlesTitle}
-                </Text>
-                <Text
-                  as="p"
-                  size="xs"
-                  color="secondary"
-                  className="max-w-md mb-6 md:text-sm"
-                >
-                  {t.home.noArticlesDesc}
-                </Text>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {subjects.map((sub) => (
+                  <Link
+                    key={sub._id}
+                    href={`/subjects/${sub._id}`}
+                    className="group glass-card rounded-2xl overflow-hidden border border-borderPrimary/60 hover:border-primary/60 transition-all duration-300 hover:shadow-lg flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Cover */}
+                      {sub.thumbnail?.url ? (
+                        <div className="h-36 w-full overflow-hidden relative">
+                          <img
+                            src={sub.thumbnail.url}
+                            alt={sub.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          {sub.code && (
+                            <span className="absolute top-2.5 ltr:left-2.5 rtl:right-2.5 px-2 py-0.5 rounded-lg text-[10px] font-black bg-black/70 text-white backdrop-blur-xs">
+                              {sub.code}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="h-36 w-full bg-primary/10 flex flex-col items-center justify-center text-primary relative">
+                          <BookOpen className="h-10 w-10 opacity-60 mb-1" />
+                          {sub.code && (
+                            <span className="text-[11px] font-black uppercase tracking-wider">
+                              {sub.code}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Info */}
+                      <div className="p-4 space-y-2">
+                        <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                          {sub.department || "General"}
+                        </span>
+                        <Text as="h3" size="sm" font="bold" color="primary" className="group-hover:text-primary transition-colors line-clamp-1">
+                          {sub.title}
+                        </Text>
+                        <Text as="p" size="xs" color="secondary" className="line-clamp-2 leading-relaxed">
+                          {sub.description}
+                        </Text>
+                      </div>
+                    </div>
+
+                    {/* Materials Counts */}
+                    <div className="px-4 py-3 border-t border-borderPrimary/40 bg-bgSecondary/30 flex items-center justify-between text-[11px] text-textSecondary">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex items-center gap-1" title="Lectures">
+                          <Video className="h-3 w-3 text-primary" />
+                          {sub.lectures?.length || 0}
+                        </span>
+                        <span className="flex items-center gap-1" title="Summaries">
+                          <FileText className="h-3 w-3 text-blue-500" />
+                          {sub.summaries?.length || 0}
+                        </span>
+                        <span className="flex items-center gap-1" title="Audio Records">
+                          <Mic className="h-3 w-3 text-amber-500" />
+                          {sub.records?.length || 0}
+                        </span>
+                        <span className="flex items-center gap-1" title="Quizzes">
+                          <HelpCircle className="h-3 w-3 text-purple-500" />
+                          {sub.quizzes?.length || 0}
+                        </span>
+                      </div>
+
+                      <span className="flex items-center gap-1 text-primary font-bold group-hover:translate-x-1 transition-transform">
+                        <span>{isArabic ? "دخول" : "Enter"}</span>
+                        <ArrowIcon className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </Link>
+                ))}
               </div>
             )}
+          </div>
+
+          {/* Right Sidebar: User Profile Overview */}
+          <div className="lg:col-span-4 space-y-6">
+            <UserProfileSidebar />
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full max-w-7xl mx-auto px-6 py-8 border-t border-borderPrimary/20 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-textSecondary">
-        <Text as="p" size="xs" color="secondary">
-          © {new Date().getFullYear()} {t.home.footerRights}{" "}
-          <Link
-            className="transition-all duration-300"
-            href={"https://emad-site.vercel.app/"}
-            target="_blank"
-          >
-            <Text
-              as="span"
-              size="xs"
-              font="bold"
-              color="primary"
-              className="hover:text-primary hover:underline"
-            >
-              Emad Ahmed
-            </Text>
-          </Link>
-        </Text>
-        <div className="flex gap-4">
-          <Text as="span" size="xs" color="secondary">
-            {t.home.terms}
-          </Text>
-          <Text as="span" size="xs" color="secondary">
-            {t.home.privacy}
-          </Text>
-          <Text as="span" size="xs" color="secondary">
-            {t.home.apiDoc}
-          </Text>
-        </div>
-      </footer>
+      {/* Create Subject Modal */}
+      {isAdminOrSuperAdmin && (
+        <CreateSubjectModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+        />
+      )}
     </div>
   );
 }

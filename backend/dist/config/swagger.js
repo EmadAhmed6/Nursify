@@ -8,13 +8,11 @@ const options = {
     definition: {
         openapi: "3.0.0",
         info: {
-            title: "Fluxion API",
+            title: "Nursify API",
             version: "1.0.0",
-            description: "A professional social media API built with Express, TS, and MongoDB",
+            description: "Educational Platform for Nursing Students API built with Express, TS, and MongoDB",
             contact: {
-                name: "Emad",
-                url: "https://emad-site.vercel.app/",
-                email: "emadahmeddev@gmail.com",
+                name: "Nursify Team",
             },
             servers: [
                 {
@@ -32,16 +30,16 @@ const options = {
                 description: "User management APIs",
             },
             {
-                name: "Posts",
-                description: "Blog posts management APIs",
-            },
-            {
-                name: "Comments",
-                description: "Comments and Replies management APIs",
+                name: "Subjects",
+                description: "Subject, Lecture, Summary, Audio Record, and Quiz APIs",
             },
             {
                 name: "Notifications",
                 description: "Notifications management APIs",
+            },
+            {
+                name: "Stories",
+                description: "Stories management APIs",
             },
             {
                 name: "Chat",

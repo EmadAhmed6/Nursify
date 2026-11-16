@@ -1,5 +1,7 @@
 export type NotificationType =
   | "follow"
+  | "subject_update"
+  | "system"
   | "comment"
   | "like"
   | "share"
@@ -22,6 +24,7 @@ export interface NotificationItem {
   recipient: string;
   sender: NotificationSender;
   type: NotificationType;
+  subject?: string;
   post?: string;
   comment?: string;
   reply?: string;
@@ -29,7 +32,6 @@ export interface NotificationItem {
   createdAt: string;
   updatedAt: string;
 }
-
 
 export interface NotificationsResponse {
   success: boolean;

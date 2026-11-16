@@ -466,13 +466,13 @@ export default function FollowersModal({
               )}
             </div>
           ) : (
-            <AnimatePresence mode="popLayout" initial={false}>
-              {visibleList.map((user) => (
+            <AnimatePresence mode="popLayout">
+              {visibleList.map((user, index) => (
                 <motion.div
                   key={user._id}
                   layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{
                     opacity: 0,
                     scale: 0.85,
@@ -484,7 +484,11 @@ export default function FollowersModal({
                     marginBottom: 0,
                     borderWidth: 0,
                   }}
-                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                  transition={{
+                    duration: 0.22,
+                    delay: Math.min(index * 0.035, 0.2),
+                    ease: "easeInOut",
+                  }}
                 >
                   <FollowUserRow
                     user={user}

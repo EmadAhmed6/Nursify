@@ -7,9 +7,7 @@ import Link from "next/link";
 import Cookies from "js-cookie";
 import Navbar from "@/_components/Navbar";
 
-import PostCard from "@/_components/PostCard";
 import StoriesTray from "@/_components/StoriesTray";
-import CreatePostCard from "@/_components/CreatePostCard";
 import EditProfileModal from "@/_components/EditProfileModal";
 import {
   useGetUserProfile,
@@ -20,7 +18,7 @@ import {
   useBlockUser,
   useUnblockUser,
 } from "@/_features/user/hooks";
-import { useGetPosts } from "@/_features/posts/hooks";
+import { useGetSubjects } from "@/_features/subjects/hooks";
 import { useGetAuthMeQuery } from "@/_features/auth/hooks";
 import {
   User as UserIcon,
@@ -52,7 +50,7 @@ import FollowersModal, { FollowModalTab } from "@/_components/FollowersModal";
 import BlockedUsersModal from "@/_components/BlockedUsersModal";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/_components/Text";
-import { Post } from "@/_features/posts/types/Post";
+import type { Subject } from "@/_features/subjects/types/Subject";
 
 import { useLanguage } from "@/context/LanguageContext";
 import { AnimatePresence, motion } from "framer-motion";
@@ -83,9 +81,7 @@ export default function UserProfilePage() {
 
   const { data: profileUser, isLoading: isUserLoading, error: profileUserError } =
     useGetUserProfile(targetUserId, !isBlockedByMe);
-  const { data: userPosts, isLoading: isPostsLoading } = useGetPosts({
-    userId: targetUserId,
-  }, !isBlockedByMe);
+  const { data: subjectsData, isLoading: isSubjectsLoading } = useGetSubjects();
 
   const uploadProfileMutation = useUploadProfilePicture(targetUserId);
   const deleteProfileImageMutation = useDeleteProfileImage(targetUserId);
@@ -271,24 +267,14 @@ export default function UserProfilePage() {
     setIsEditModalOpen(true);
   };
 
-  const fetchedUserPosts = Array.isArray(userPosts)
-    ? userPosts
-    : userPosts?.posts || [];
-  const rawPosts: any[] =
-    fetchedUserPosts.length > 0
-      ? fetchedUserPosts
-      : Array.isArray((userToDisplay as any)?.posts)
-        ? (userToDisplay as any).posts
-        : [];
-
-  const displayUserPosts = rawPosts.filter((post: any) => {
+  const allSubjects = subjectsData?.subjects || [];
+  const displayUserSubjects = allSubjects.filter((sub) => {
     if (!targetUserId) return true;
-    const pUserId =
-      typeof post.user === "string"
-        ? post.user
-        : post.user?._id || post.user?.id;
-    if (!pUserId) return true;
-    return String(pUserId) === String(targetUserId);
+    const creatorId =
+      typeof sub.createdBy === "string"
+        ? sub.createdBy
+        : (sub.createdBy as any)?._id || (sub.createdBy as any)?.id;
+    return String(creatorId) === String(targetUserId);
   });
 
   const joinedDateFormatted = userToDisplay?.createdAt
@@ -378,9 +364,9 @@ export default function UserProfilePage() {
 
                 {/* Avatar Action Buttons (Owner or Admin — but not admin on SuperAdmin profile) */}
                 {(isOwnProfile ||
-                  currentUser?.role === "SuperAdmin" ||
-                  (currentUser?.role === "Admin" &&
-                    userToDisplay?.role !== "SuperAdmin")) && (
+                  currentUser?.role === "superadmin" ||
+                  (currentUser?.role === "admin" &&
+                    userToDisplay?.role !== "superadmin")) && (
                   <div
                     className="absolute -bottom-1 ltr:-right-1 rtl:-left-1 z-20"
                     ref={avatarMenuRef}
@@ -493,12 +479,12 @@ export default function UserProfilePage() {
                           userToDisplay?.username ||
                           "Developer"}
                       </Text>
-                      {userToDisplay?.role === "SuperAdmin" ? (
+                      {userToDisplay?.role === "superadmin" ? (
                         <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full text-amber-400 border border-amber-400/40 flex items-center gap-1.5 w-fit">
                           <Crown className="h-3 w-3 text-amber-400" />
                           {t.profile.owner}
                         </span>
-                      ) : userToDisplay?.role === "Admin" ? (
+                      ) : userToDisplay?.role === "admin" ? (
                         <span className="text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 flex items-center gap-1">
                           <ShieldCheck className="h-3.5 w-3.5" />
                           {t.admin.admin}
@@ -526,8 +512,8 @@ export default function UserProfilePage() {
                       </div>
                     )}
                     {(isOwnProfile ||
-                      currentUser?.role === "Admin" ||
-                      currentUser?.role === "SuperAdmin") &&
+                      currentUser?.role === "admin" ||
+                      currentUser?.role === "superadmin") &&
                       userToDisplay?.email && (
                         <div className="flex items-center justify-center md:justify-start gap-1.5 mt-1 w-full">
                           <Mail className="h-3.5 w-3.5 text-textSecondary shrink-0" />
@@ -605,8 +591,8 @@ export default function UserProfilePage() {
                     {/* ── More-Actions dropdown (⋮) ── */}
                     {(isOwnProfile ||
                       !isOwnProfile ||
-                      currentUser?.role === "Admin" ||
-                      currentUser?.role === "SuperAdmin") &&
+                      currentUser?.role === "admin" ||
+                      currentUser?.role === "superadmin") &&
                       (isOwnProfile
                         ? true
                         : !isOwnProfile && targetUserId) && (
@@ -627,9 +613,9 @@ export default function UserProfilePage() {
                             <div className="absolute z-50 mt-2 w-52 rounded-2xl border border-borderPrimary bg-cardBackground shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 right-0">
                               {/* Edit Profile */}
                               {(isOwnProfile ||
-                                currentUser?.role === "SuperAdmin" ||
-                                (currentUser?.role === "Admin" &&
-                                  userToDisplay?.role !== "SuperAdmin")) && (
+                                currentUser?.role === "superadmin" ||
+                                (currentUser?.role === "admin" &&
+                                  userToDisplay?.role !== "superadmin")) && (
                                 <button
                                   onClick={() => {
                                     handleOpenEditModal();
@@ -711,9 +697,9 @@ export default function UserProfilePage() {
 
                               {/* Delete User / Account */}
                               {(isOwnProfile ||
-                                currentUser?.role === "SuperAdmin" ||
-                                (currentUser?.role === "Admin" &&
-                                  userToDisplay?.role !== "SuperAdmin")) && (
+                                currentUser?.role === "superadmin" ||
+                                (currentUser?.role === "admin" &&
+                                  userToDisplay?.role !== "superadmin")) && (
                                 <>
                                   <div className="h-px bg-borderPrimary/60 mx-3 my-0.5" />
                                   <button
@@ -791,7 +777,7 @@ export default function UserProfilePage() {
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-bgPrimary/80 border border-borderPrimary/40">
                     <FileText className="h-4 w-4 text-primary" />
                     <Text as="span" size="xs" font="semiBold" color="primary">
-                      {displayUserPosts.length} {t.profile.articlesPublished}
+                      {displayUserSubjects.length} {isArabic ? "مادة" : "Subjects"}
                     </Text>
                   </div>
                   {userToDisplay?.createdAt && (
@@ -808,46 +794,56 @@ export default function UserProfilePage() {
           )}
         </div>
 
-        {/* Profile User Posts Section */}
-        <div className="space-y-6 max-w-2xl mx-auto w-full">
-          <div className="flex items-center pb-2 border-b border-borderPrimary/40 w-full">
+        {/* Profile Subjects Section */}
+        <div className="space-y-6 max-w-4xl mx-auto w-full">
+          <div className="flex items-center pb-2 border-b border-borderPrimary/40 w-full justify-between">
             <div className="flex items-center gap-2.5">
               <FileText className="h-5 w-5 text-primary" />
               <Text as="h2" size="xl" font="bold" color="primary">
-                {isOwnProfile
-                  ? isArabic
-                    ? "البوستات بتاعتي"
-                    : "My Published Posts"
-                  : `${userToDisplay?.fullName || userToDisplay?.username || ""} - ${t.profile.userPosts}`}
+                {isArabic ? "المواد التمريضية" : "Nursing Subjects"}
               </Text>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
-                {displayUserPosts.length}
+                {displayUserSubjects.length}
               </span>
             </div>
           </div>
 
-          {/* Inline Create Post Box if viewing own profile */}
-          {isOwnProfile && (
-            <div className="w-full">
-              <CreatePostCard />
-            </div>
-          )}
-
-          {isPostsLoading ? (
+          {isSubjectsLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : displayUserPosts.length === 0 ? (
+          ) : displayUserSubjects.length === 0 ? (
             <div className="text-center py-12 p-8 rounded-2xl bg-bgSecondary/40 border border-borderPrimary/40 w-full">
               <FileText className="h-10 w-10 text-textSecondary mx-auto mb-3 opacity-40" />
               <Text as="p" size="sm" font="semiBold" color="primary">
-                {t.profile.noPostsYet}
+                {isArabic ? "لم يقم بإضافة أي مواد بعد." : "No subjects available yet."}
               </Text>
             </div>
           ) : (
-            <div className="space-y-6 w-full">
-              {displayUserPosts.map((post: Post) => (
-                <PostCard key={post._id} post={post} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+              {displayUserSubjects.map((sub: Subject) => (
+                <Link
+                  key={sub._id}
+                  href={`/subjects/${sub._id}`}
+                  className="p-5 rounded-2xl bg-bgSecondary/60 border border-borderPrimary/60 hover:border-primary/50 transition-all flex flex-col justify-between group"
+                >
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 w-fit">
+                      {sub.department || "General"}
+                    </span>
+                    <Text as="h3" size="sm" font="bold" color="primary" className="group-hover:text-primary transition-colors">
+                      {sub.title}
+                    </Text>
+                    <Text as="p" size="xs" color="secondary" className="line-clamp-2">
+                      {sub.description}
+                    </Text>
+                  </div>
+
+                  <div className="pt-3 mt-3 border-t border-borderPrimary/40 flex items-center justify-between text-[11px] text-textSecondary">
+                    <span>{sub.code || "NURSING"}</span>
+                    <span className="text-primary font-bold">{isArabic ? "عرض التفاصيل ←" : "View Details →"}</span>
+                  </div>
+                </Link>
               ))}
             </div>
           )}

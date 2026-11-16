@@ -1,43 +1,24 @@
-import mongoose, { model, Schema, Types } from "mongoose";
-const ChatSchema = new Schema({
+import { Schema, model, Document, Types } from "mongoose";
+const GlobalMessageSchema = new Schema({
     sender: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "User",
         required: true,
+        index: true,
     },
-    recipient: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+    content: {
+        type: String,
         required: true,
+        trim: true,
+        maxLength: 2000,
     },
-    message: {
-        type: String,
-        default: "",
+    replyTo: {
+        type: Schema.Types.ObjectId,
+        ref: "GlobalMessage",
+        default: null,
     },
-    imageUrl: {
-        type: String,
-    },
-    isDeleted: {
-        type: Boolean,
-        default: false,
-    },
-    isRead: {
-        type: Boolean,
-        default: false,
-    },
-    isEdited: {
-        type: Boolean,
-        default: false,
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
-    },
-}, { timestamps: true });
-const Chat = model("Chat", ChatSchema);
-export default Chat;
+}, {
+    timestamps: true,
+});
+export const GlobalMessage = model("GlobalMessage", GlobalMessageSchema);
 //# sourceMappingURL=chat.model.js.map

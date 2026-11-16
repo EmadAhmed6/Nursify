@@ -6,7 +6,7 @@ import Navbar from "@/_components/Navbar";
 import AdminSidebar from "@/_components/AdminSidebar";
 import { Text } from "@/_components/Text";
 import { useGetAllUsers, useDeleteUser, useToggleAdminStatus } from "@/_features/user/hooks";
-import { useGetPosts } from "@/_features/posts/hooks";
+import { useGetSubjects } from "@/_features/subjects/hooks";
 import { useGetAuthMeQuery } from "@/_features/auth/hooks";
 import {
   Users,
@@ -40,8 +40,8 @@ export default function AdminUsersPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [jobTitleFilter, setJobTitleFilter] = useState("");
   const [debouncedJobTitle, setDebouncedJobTitle] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
-  const [providerFilter, setProviderFilter] = useState<"all" | "local" | "google" | "github">("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "student">("all");
+  const [providerFilter, setProviderFilter] = useState<"all" | "local" | "google">("all");
   const [pageNumber, setPageNumber] = useState(1);
   const [userToEdit, setUserToEdit] = useState<string | null>(null);
   const [selectedUserToDelete, setSelectedUserToDelete] = useState<{
@@ -69,25 +69,25 @@ export default function AdminUsersPage() {
     return () => clearTimeout(handler);
   }, [jobTitleFilter]);
 
-  const handleRoleFilterChange = (newRole: "all" | "admin" | "user") => {
+  const handleRoleFilterChange = (newRole: "all" | "admin" | "student") => {
     setRoleFilter(newRole);
     setPageNumber(1);
   };
 
-  const handleProviderFilterChange = (newProvider: "all" | "local" | "google" | "github") => {
+  const handleProviderFilterChange = (newProvider: "all" | "local" | "google") => {
     setProviderFilter(newProvider);
     setPageNumber(1);
   };
 
   const { data: usersData, isLoading: isUsersLoading } = useGetAllUsers({
     search: debouncedSearch,
-    role: roleFilter === "all" ? undefined : roleFilter === "admin" ? "Admin" : "User",
+    role: roleFilter === "all" ? undefined : roleFilter,
     provider: providerFilter === "all" ? undefined : providerFilter,
     jobTitle: debouncedJobTitle || undefined,
     pageNumber,
   });
 
-  const { data: posts } = useGetPosts();
+  const { data: subjectsData } = useGetSubjects();
   const deleteUserMutation = useDeleteUser();
   const toggleAdminMutation = useToggleAdminStatus();
   const { t, isArabic } = useLanguage();
@@ -106,7 +106,7 @@ export default function AdminUsersPage() {
   const BackIcon = isArabic ? ArrowRight : ArrowLeft;
   const NextIcon = isArabic ? ArrowLeft : ArrowRight;
 
-  if (currentUser?.role !== "Admin" && currentUser?.role !== "SuperAdmin") {
+  if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
     return (
       <div className="min-h-screen bg-bgPrimary text-textPrimary flex flex-col justify-between">
         <Navbar />
@@ -137,7 +137,7 @@ export default function AdminUsersPage() {
             <Button className="rounded-xl bg-primary text-primary-foreground text-xs font-semibold cursor-pointer">
               <BackIcon className="h-4 w-4 ltr:mr-1.5 rtl:ml-1.5" />
               <Text as="span" size="xs" font="semiBold" color="white">
-                {t.post.backToFeed}
+                {isArabic ? "الرجوع للرئيسية" : "Back to Home"}
               </Text>
             </Button>
           </Link>
@@ -147,13 +147,13 @@ export default function AdminUsersPage() {
   }
 
   const allUsersList = Array.isArray(usersData) ? usersData : usersData?.users || [];
-  const allPostsList = Array.isArray(posts) ? posts : [];
+  const totalSubjectsCount = subjectsData?.totalSubjects ?? subjectsData?.subjects?.length ?? 0;
   const currentPage = usersData?.page || pageNumber;
   const totalPages = usersData?.pages || 1;
   const totalUsers = usersData?.totalUsers ?? allUsersList.length;
 
-  const adminUsersCount = allUsersList.filter((u) => u.role === "Admin" || u.role === "SuperAdmin").length;
-  const regularUsersCount = allUsersList.filter((u) => u.role === "User").length;
+  const adminUsersCount = allUsersList.filter((u) => u.role === "admin" || u.role === "superadmin").length;
+  const standardStudentsCount = allUsersList.filter((u) => u.role === "student").length;
 
   const handleConfirmDeleteUser = async () => {
     if (!selectedUserToDelete) return;
@@ -161,7 +161,7 @@ export default function AdminUsersPage() {
       await deleteUserMutation.mutateAsync(selectedUserToDelete.id);
       setSelectedUserToDelete(null);
     } catch {
-      // Handled in mutation
+      // error handled by mutation
     }
   };
 
@@ -169,27 +169,38 @@ export default function AdminUsersPage() {
     <div className="min-h-screen bg-bgPrimary text-textPrimary flex flex-col justify-between">
       <Navbar />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-12">
-        {/* Top Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
-            <ShieldCheck className="h-5 w-5" />
-          </div>
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        {/* Header Breadcrumbs / Title */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <Text
-              as="h1"
-              size="3xl"
-              font="extraBold"
-              color="primary"
-              className="tracking-tight"
-            >
-              {t.admin.dashboard}
-            </Text>
-            <Text as="p" size="xs" color="secondary">
-              {isArabic
-                ? "إدارة اليوزرات والبوستات المنشورة وإحصائيات السيستم"
-                : "Manage system users, published posts, and platform metrics"}
-            </Text>
+            <div className="flex items-center gap-2 text-xs text-textSecondary mb-1.5 font-medium">
+              <Link href="/" className="hover:text-primary transition-colors">
+                {isArabic ? "الرئيسية" : "Home"}
+              </Link>
+              <span>/</span>
+              <span>{t.admin.dashboard}</span>
+              <span>/</span>
+              <span className="text-primary">{t.admin.usersManagement}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Text as="h1" size="2xl" font="black" color="primary">
+                {t.admin.usersManagement}
+              </Text>
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                {totalUsers} {t.admin.user}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link href="/admin/dashboard/subjects">
+              <Button
+                variant="outline"
+                className="rounded-xl border-borderPrimary text-xs font-semibold cursor-pointer"
+              >
+                {isArabic ? "إدارة المواد الدراسية" : "Manage Subjects"}
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -199,7 +210,7 @@ export default function AdminUsersPage() {
             <AdminSidebar
               currentUser={currentUser}
               totalUsers={totalUsers}
-              totalPosts={allPostsList.length}
+              totalPosts={totalSubjectsCount}
             />
           </div>
 
@@ -223,7 +234,6 @@ export default function AdminUsersPage() {
                   <option value="all">{t.admin.allProviders}</option>
                   <option value="local">{t.admin.localProvider}</option>
                   <option value="google">{t.admin.googleProvider}</option>
-                  <option value="github">{t.admin.githubProvider}</option>
                 </select>
 
                 {/* Search Input */}
@@ -288,9 +298,9 @@ export default function AdminUsersPage() {
 
               <button
                 type="button"
-                onClick={() => handleRoleFilterChange("user")}
+                onClick={() => handleRoleFilterChange("student")}
                 className={`p-5 rounded-2xl bg-bgSecondary/70 border transition-all text-left rtl:text-right flex items-center gap-4 cursor-pointer hover:border-emerald-500 ${
-                  roleFilter === "user"
+                  roleFilter === "student"
                     ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-md"
                     : "border-borderPrimary/50"
                 }`}
@@ -300,10 +310,10 @@ export default function AdminUsersPage() {
                 </div>
                 <div>
                   <Text as="p" size="xs" font="medium" color="secondary">
-                    {isArabic ? "مستخدمين عاديين" : "Standard Users"}
+                    {isArabic ? "الطلاب" : "Students"}
                   </Text>
                   <Text as="h3" size="2xl" font="black" color="primary">
-                    {regularUsersCount}
+                    {standardStudentsCount}
                   </Text>
                 </div>
               </button>
@@ -369,24 +379,17 @@ export default function AdminUsersPage() {
                                 )}
                                 <div>
                                   <Text
-                                    as="p"
+                                    as="span"
                                     size="xs"
                                     font="bold"
                                     color="primary"
-                                    className="group-hover:text-primary transition-colors flex items-center gap-1.5"
+                                    className="group-hover:text-primary transition-colors block"
                                   >
-                                    {userItem.username}
+                                    {userItem.fullName || userItem.username}
                                   </Text>
-                                  {userItem.fullName && (
-                                    <Text
-                                      as="p"
-                                      size="xs"
-                                      color="secondary"
-                                      className="text-[11px] opacity-75"
-                                    >
-                                      {userItem.fullName}
-                                    </Text>
-                                  )}
+                                  <Text as="span" size="xs" color="secondary">
+                                    @{userItem.username}
+                                  </Text>
                                 </div>
                               </Link>
                             </UserHoverCard>
@@ -416,10 +419,6 @@ export default function AdminUsersPage() {
                             {userItem.provider === "google" ? (
                               <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 w-fit">
                                 Google
-                              </span>
-                            ) : userItem.provider === "github" ? (
-                              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-500 border border-purple-500/20 w-fit">
-                                GitHub
                               </span>
                             ) : (
                               <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">
@@ -454,19 +453,19 @@ export default function AdminUsersPage() {
                           </td>
 
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {userItem.role === "SuperAdmin" ? (
+                            {userItem.role === "superadmin" ? (
                               <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full text-amber-400 border border-amber-400/40 flex items-center gap-1.5 w-fit">
                                 <Crown className="h-3 w-3 text-amber-400" />
-                                OWNER
+                                SUPERADMIN
                               </span>
-                            ) : userItem.role === "Admin" ? (
+                            ) : userItem.role === "admin" ? (
                               <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 flex items-center gap-1 w-fit">
                                 <ShieldCheck className="h-3 w-3" />
                                 {t.admin.admin}
                               </span>
                             ) : (
                               <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-slate-500/15 text-textSecondary border border-borderPrimary/40 w-fit">
-                                {t.admin.user}
+                                STUDENT
                               </span>
                             )}
                           </td>
@@ -503,7 +502,7 @@ export default function AdminUsersPage() {
                           <td className="px-6 py-4 whitespace-nowrap ltr:text-right rtl:text-left">
                             <div className="flex items-center justify-end gap-2">
                               {/* Edit button */}
-                              {(currentUser?.role === "SuperAdmin" || userItem.role !== "SuperAdmin") && (
+                              {(currentUser?.role === "superadmin" || userItem.role !== "superadmin") && (
                                 <Tooltip
                                   position="top"
                                   content={
@@ -541,12 +540,12 @@ export default function AdminUsersPage() {
                               )}
 
                               {/* Promote / Demote Admin button */}
-                              {currentUser?.role === "SuperAdmin" &&
-                                userItem.role !== "SuperAdmin" && (
+                              {currentUser?.role === "superadmin" &&
+                                userItem.role !== "superadmin" && (
                                   <Tooltip
                                     position="top"
                                     content={
-                                      userItem.role === "Admin"
+                                      userItem.role === "admin"
                                         ? isArabic
                                           ? "إلغاء صلاحية الأدمن"
                                           : "Remove Admin"
@@ -565,12 +564,12 @@ export default function AdminUsersPage() {
                                         toggleAdminMutation.isPending
                                       }
                                       className={`h-8 w-8 p-0 rounded-xl cursor-pointer transition-all hover:scale-105 ${
-                                        userItem.role === "Admin"
+                                        userItem.role === "admin"
                                           ? "bg-amber-500/10 text-amber-500 border border-amber-500/30 hover:bg-amber-500 hover:text-white"
                                           : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white"
                                       }`}
                                     >
-                                      {userItem.role === "Admin" ? (
+                                      {userItem.role === "admin" ? (
                                         <ShieldOff className="h-3.5 w-3.5" />
                                       ) : (
                                         <ShieldCheck className="h-3.5 w-3.5" />
@@ -618,46 +617,30 @@ export default function AdminUsersPage() {
                       ? `صفحة ${currentPage} من ${totalPages} (إجمالي ${totalUsers} مستخدم)`
                       : `Page ${currentPage} of ${totalPages} (${totalUsers} total users)`}
                   </Text>
-                  <div className="flex items-center gap-1.5">
+
+                  <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+                      onClick={() => setPageNumber((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage <= 1 || isUsersLoading}
-                      className="rounded-xl text-xs gap-1 cursor-pointer"
+                      className="rounded-xl border-borderPrimary text-xs cursor-pointer font-medium"
                     >
-                      <BackIcon className="h-3.5 w-3.5" />
-                      <Text as="span" size="xs" color="primary">
-                        {t.admin.previousPage}
-                      </Text>
+                      <BackIcon className="h-3.5 w-3.5 ltr:mr-1 rtl:ml-1" />
+                      {t.admin.previousPage}
                     </Button>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                      <Button
-                        key={p}
-                        variant={p === currentPage ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setPageNumber(p)}
-                        disabled={isUsersLoading}
-                        className={`h-8 w-8 p-0 rounded-xl text-xs font-bold cursor-pointer ${
-                          p === currentPage ? "bg-primary text-white" : ""
-                        }`}
-                      >
-                        {p}
-                      </Button>
-                    ))}
-
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
+                      onClick={() =>
+                        setPageNumber((prev) => Math.min(totalPages, prev + 1))
+                      }
                       disabled={currentPage >= totalPages || isUsersLoading}
-                      className="rounded-xl text-xs gap-1 cursor-pointer"
+                      className="rounded-xl border-borderPrimary text-xs cursor-pointer font-medium"
                     >
-                      <Text as="span" size="xs" color="primary">
-                        {t.admin.nextPage}
-                      </Text>
-                      <NextIcon className="h-3.5 w-3.5" />
+                      {t.admin.nextPage}
+                      <NextIcon className="h-3.5 w-3.5 ltr:ml-1 rtl:mr-1" />
                     </Button>
                   </div>
                 </div>
@@ -667,34 +650,30 @@ export default function AdminUsersPage() {
         </div>
       </main>
 
-      {/* Edit User Modal */}
-      {userToEdit && (() => {
-        const freshUser = allUsersList.find((u) => u._id === userToEdit);
-        if (!freshUser) return null;
-        return (
-          <EditProfileModal
-            isOpen={true}
-            onClose={() => setUserToEdit(null)}
-            user={freshUser}
-            targetUserId={freshUser._id}
-          />
-        );
-      })()}
+      {/* Modals */}
+      {selectedUserToDelete && (
+        <DeleteConfirmModal
+          isOpen={!!selectedUserToDelete}
+          onClose={() => setSelectedUserToDelete(null)}
+          onConfirm={handleConfirmDeleteUser}
+          title={isArabic ? "مسح المستخدم" : "Delete User"}
+          description={
+            isArabic
+              ? `هل أنت متأكد من رغبتك في حذف الحساب @${selectedUserToDelete.username}؟ سيتم حذف جميع بياناته بشكل نهائي.`
+              : `Are you sure you want to permanently delete user @${selectedUserToDelete.username}? This action cannot be undone.`
+          }
+          isPending={deleteUserMutation.isPending}
+        />
+      )}
 
-      {/* Delete User Modal */}
-      <DeleteConfirmModal
-        isOpen={!!selectedUserToDelete}
-        onClose={() => setSelectedUserToDelete(null)}
-        onConfirm={handleConfirmDeleteUser}
-        title={t.admin.deleteUser}
-        description={
-          isArabic
-            ? `انت متأكد انك عايز تمسح حساب "${selectedUserToDelete?.username}"؟ كل مقالاته وكومنتاته هتتمسح نهائياً.`
-            : `Are you sure you want to delete user account "${selectedUserToDelete?.username}"? All associated posts and comments will be permanently removed.`
-        }
-        confirmText={t.admin.deleteUser}
-        isPending={deleteUserMutation.isPending}
-      />
+      {userToEdit && (
+        <EditProfileModal
+          isOpen={!!userToEdit}
+          onClose={() => setUserToEdit(null)}
+          user={allUsersList.find((u) => u._id === userToEdit)}
+          targetUserId={userToEdit}
+        />
+      )}
     </div>
   );
 }

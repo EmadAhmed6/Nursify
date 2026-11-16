@@ -55,8 +55,8 @@ Protected routes require JSON Web Token (JWT) authentication using a dual-token 
 | 2   | POST   | `/auth/login`                                                     | Authenticate user (returns JWT & sets httpOnly cookie)           |  ❌  |  🔒 10 req/min   |
 | 3   | POST   | `/auth/refresh-token`                                             | Generate a new access token using httpOnly refreshToken cookie   |  🔒  |        —         |
 | 4   | POST   | `/auth/logout`                                                    | Clear httpOnly refreshToken cookie and invalidate refresh session|  ❌  |        —         |
-| 5   | GET    | `/auth/github`                                                    | Initiate GitHub OAuth 2.0 Login authorization flow               |  ❌  |        —         |
-| 6   | GET    | `/auth/github/callback`                                           | GitHub OAuth 2.0 Callback, Passport auth & JWT redirect          |  ❌  |        —         |
+| 5   | GET    | `/auth/google`                                                    | Initiate Google OAuth 2.0 Login authorization flow               |  ❌  |        —         |
+| 6   | GET    | `/auth/google/callback`                                           | Google OAuth 2.0 Callback, Passport auth & JWT redirect          |  ❌  |        —         |
 | 7   | POST   | `/auth/verify-otp`                                                | Verify user email using 6-digit DB OTP code                      |  ❌  |        —         |
 | 8   | POST   | `/auth/resend-otp`                                                | Resend 6-digit OTP code to unverified email                      |  ❌  |  🔒 10 req/min   |
 | 9   | POST   | `/auth/forgot-password`                                           | Send password reset link to user's email                         |  ❌  |  🔒 10 req/min   |
@@ -75,23 +75,15 @@ Protected routes require JSON Web Token (JWT) authentication using a dual-token 
 | 22  | GET    | `/users/blocked-users`                                             | Retrieve the authenticated user's blocked users                  |  🔒  | 🔒 100 req/15min |
 | 23  | PATCH  | `/users/:userId/block`                                             | Block a user and remove follow relationships                     |  🔒  | 🔒 100 req/15min |
 | 24  | PATCH  | `/users/:userId/unblock`                                           | Unblock a previously blocked user                                |  🔒  | 🔒 100 req/15min |
-| 25  | GET    | `/posts`                                                          | Retrieve all blog posts with populated user, likes, and shares   |  🔒  | 🔒 100 req/15min |
-| 26  | POST   | `/posts`                                                          | Create a new blog post with postImage metadata                   |  🔒  | 🔒 100 req/15min |
-| 27  | POST   | `/posts/:postId/share`                                            | Share an existing post & update shares count                     |  🔒  | 🔒 100 req/15min |
-| 28  | GET    | `/posts/:postId`                                                  | Retrieve detailed view of a single post by ID                    |  🔒  | 🔒 100 req/15min |
-| 29  | PUT    | `/posts/:postId`                                                  | Update title, description, category, or postImage of a post      |  🔒  | 🔒 100 req/15min |
-| 30  | DELETE | `/posts/:postId`                                                  | Delete a post and clear its associated media                     |  🔒  | 🔒 100 req/15min |
-| 31  | PUT    | `/posts/:postId/like`                                             | Toggle like/unlike status on a blog post                         |  🔒  | 🔒 100 req/15min |
-| 32  | GET    | `/posts/:postId/comments`                                         | Retrieve comments for a post                                     |  🔒  | 🔒 100 req/15min |
-| 33  | POST   | `/posts/:postId/comments`                                         | Post a new comment (with optional commentImage)                  |  🔒  | 🔒 100 req/15min |
-| 34  | PUT    | `/posts/:postId/comments/:commentId/like`                         | Toggle like/unlike on a comment                                  |  🔒  | 🔒 100 req/15min |
-| 35  | PUT    | `/posts/:postId/comments/:commentId`                              | Update text or commentImage of a comment                         |  🔒  | 🔒 100 req/15min |
-| 36  | DELETE | `/posts/:postId/comments/:commentId`                              | Remove comment & decrement commentsCount on post                 |  🔒  | 🔒 100 req/15min |
-| 37  | GET    | `/posts/:postId/comments/:commentId/replies`                      | Get all replies for a parent comment                             |  🔒  | 🔒 100 req/15min |
-| 38  | POST   | `/posts/:postId/comments/:commentId/replies`                      | Create a reply under a parent comment (with optional replyImage) |  🔒  | 🔒 100 req/15min |
-| 39  | PUT    | `/posts/:postId/comments/:commentId/replies/:replyCommentId`      | Update text content or replyImage of a reply comment             |  🔒  | 🔒 100 req/15min |
-| 40  | DELETE | `/posts/:postId/comments/:commentId/replies/:replyCommentId`      | Remove reply comment & decrement replyCommentsCount              |  🔒  | 🔒 100 req/15min |
-| 41  | PUT    | `/posts/:postId/comments/:commentId/replies/:replyCommentId/like` | Toggle like/unlike on a reply comment                            |  🔒  | 🔒 100 req/15min |
+| 25  | GET    | `/subjects`                                                       | Retrieve all subjects with lectures, summaries, records, quizzes |  🔒  | 🔒 100 req/15min |
+| 26  | POST   | `/subjects`                                                       | Create a new subject with thumbnail (Admin & Superadmin only)    |  🔒  | 🔒 100 req/15min |
+| 27  | GET    | `/subjects/:subjectId`                                            | Retrieve detailed view of a subject with all nested materials    |  🔒  | 🔒 100 req/15min |
+| 28  | PUT    | `/subjects/:subjectId`                                            | Update title, description, code, department or thumbnail         |  🔒  | 🔒 100 req/15min |
+| 29  | DELETE | `/subjects/:subjectId`                                            | Delete a subject and clear its thumbnail (Admin & Superadmin)    |  🔒  | 🔒 100 req/15min |
+| 30  | PATCH  | `/subjects/:subjectId/lectures`                                   | Add or remove a lecture from a subject (Admin & Superadmin only) |  🔒  | 🔒 100 req/15min |
+| 31  | PATCH  | `/subjects/:subjectId/summaries`                                  | Add or remove a study summary (Admin & Superadmin only)          |  🔒  | 🔒 100 req/15min |
+| 32  | PATCH  | `/subjects/:subjectId/records`                                    | Add or remove an audio record (Admin & Superadmin only)          |  🔒  | 🔒 100 req/15min |
+| 33  | PATCH  | `/subjects/:subjectId/quizzes`                                    | Add or remove an interactive quiz (Admin & Superadmin only)      |  🔒  | 🔒 100 req/15min |
 | 42  | GET    | `/notifications`                                                  | Retrieve all notifications for authenticated user                |  🔒  |        —         |
 | 43  | PATCH  | `/notifications`                                                  | Mark all notifications as read for authenticated user            |  🔒  |        —         |
 | 44  | PATCH  | `/notifications/:notificationId`                                  | Mark a specific notification as read                             |  🔒  |        —         |
@@ -167,7 +159,7 @@ User registered successfully. Returns user details along with an auto-generated 
     "username": "ahmed",
     "email": "ahmed@example.com",
     "provider": "local",
-    "role": "User",
+    "role": "student",
     "isVerified": false,
     "postsCount": 0,
     "profilePicture": {
@@ -220,7 +212,7 @@ Login successful. Returns user account details and the authorization token.
     "username": "ahmed",
     "email": "ahmed@example.com",
     "provider": "local",
-    "role": "User",
+    "role": "student",
     "isVerified": true,
     "postsCount": 0,
     "profilePicture": {
@@ -307,9 +299,9 @@ User logged out successfully and httpOnly cookie cleared.
 
 ---
 
-### GET /auth/github
+### GET /auth/google
 
-Initiate GitHub OAuth 2.0 1-click login authentication. Redirects client browser to GitHub authorization page.
+Initiate Google OAuth 2.0 1-click login authentication. Redirects client browser to Google authorization page.
 
 #### Request Parameters
 
@@ -319,19 +311,19 @@ None required. Triggers standard OAuth redirect.
 
 ##### Response 302
 
-Redirects user browser to GitHub OAuth authorization URL (`https://github.com/login/oauth/authorize`).
+Redirects user browser to Google OAuth authorization URL.
 
 ---
 
-### GET /auth/github/callback
+### GET /auth/google/callback
 
-Callback handler for GitHub OAuth 2.0 authentication. Authenticates user, creates MongoDB account if new (`provider: "github"`), generates JWT session token, and redirects to client.
+Callback handler for Google OAuth 2.0 authentication. Authenticates user, creates MongoDB account if new (`provider: "google"`, `role: "student"`), generates JWT session token, and redirects to client.
 
 #### Query Parameters
 
 | Parameter | Type   | Required | Description                                           |
 | :-------- | :----- | :------: | :---------------------------------------------------- |
-| `code`    | string |    ✅    | Authorization code sent by GitHub after user consent. |
+| `code`    | string |    ✅    | Authorization code sent by Google after user consent. |
 
 #### Responses
 
@@ -340,7 +332,7 @@ Callback handler for GitHub OAuth 2.0 authentication. Authenticates user, create
 Login successful. Redirects to frontend callback page with signed JWT token.
 
 ```
-Redirect URL: ${FRONTEND_URL}/auth/callback?token=<JWT_TOKEN>
+Redirect URL: ${FRONTEND_URL}/auth/callback?token=<JWT_TOKEN>&provider=google
 ```
 
 ##### Response 400
@@ -381,7 +373,7 @@ Account verified successfully. Returns user account details.
     "_id": "65f1a2b3c4d5e6f789012345",
     "username": "ahmed",
     "email": "ahmed@example.com",
-    "role": "User",
+    "role": "student",
     "isVerified": true,
     "postsCount": 0,
     "profilePicture": {
@@ -576,7 +568,7 @@ Successfully retrieved users list.
       "_id": "65f1a2b3c4d5e6f789012345",
       "username": "Ahmed",
       "email": "ahmed@example.com",
-      "role": "User",
+      "role": "student",
       "isVerified": true,
       "postsCount": 0,
       "profilePicture": {
@@ -625,7 +617,7 @@ Successfully retrieved user details.
     "_id": "65f1a2b3c4d5e6f789012345",
     "username": "Ahmed",
     "email": "ahmed@example.com",
-    "role": "User",
+    "role": "student",
     "isVerified": true,
     "postsCount": 0,
     "profilePicture": {
@@ -705,7 +697,7 @@ Profile updated successfully. Returns updated user document.
     "_id": "65f1a2b3c4d5e6f789012345",
     "username": "AhmedUpdated",
     "email": "ahmed.new@example.com",
-    "role": "User",
+    "role": "student",
     "isVerified": true,
     "postsCount": 0,
     "profilePicture": {
@@ -766,7 +758,7 @@ The user target profile was not found.
 
 ### PATCH /users/:userId/toggle-admin 🔒
 
-Toggle the role of a target user account (`User` <-> `Admin`). **Super Admin-only endpoint.** Super Admin status cannot be self-toggled.
+Toggle the role of a target user account (`student` <-> `admin`). **Super Admin-only endpoint.** Super Admin status cannot be self-toggled.
 
 #### Path Parameters
 
@@ -997,7 +989,7 @@ Profile picture deleted successfully. Returns the updated user document.
     "_id": "65f1a2b3c4d5e6f789012345",
     "username": "ahmed",
     "email": "ahmed@example.com",
-    "role": "User",
+    "role": "student",
     "isVerified": true,
     "postsCount": 3,
     "profilePicture": {

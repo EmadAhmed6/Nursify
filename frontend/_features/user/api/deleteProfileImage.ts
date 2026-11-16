@@ -1,5 +1,5 @@
 import { axiosClient } from "@/lib/axiosClient";
-import { UserProfile } from "../../posts/types/Post";
+import { UserProfile } from "../types/user.types";
 
 export const deleteProfileImage = async (
   userId: string,

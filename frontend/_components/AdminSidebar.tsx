@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, FileText, Crown, ShieldAlert, Loader2 } from "lucide-react";
+import { Users, BookOpen, Crown, ShieldAlert, Loader2 } from "lucide-react";
 import { Text } from "@/_components/Text";
-import { UserProfile } from "@/_features/posts/types/Post";
+import { UserProfile } from "@/_features/user/types/user.types";
 import { useGetAllUsers } from "@/_features/user/hooks";
 import { useLanguage } from "@/context/LanguageContext";
 import { toggleAdminStatus } from "@/_features/user/api/toggleAdminStatus";
@@ -32,7 +32,7 @@ export default function AdminSidebar({
 
   const isUsersActive =
     pathname === "/admin/dashboard/users" || pathname === "/admin/dashboard";
-  const isPostsActive = pathname === "/admin/dashboard/posts";
+  const isSubjectsActive = pathname === "/admin/dashboard/subjects" || pathname === "/admin/dashboard/posts";
 
   const rawUsersList = Array.isArray(users) ? users : users?.users || [];
   const allUsersList = rawUsersList.map((u) => {
@@ -45,11 +45,11 @@ export default function AdminSidebar({
     return {
       ...u,
       isSuperAdmin: isCurrent
-        ? Boolean(currentUser?.role === "SuperAdmin" || u.role === "SuperAdmin")
-        : Boolean(u.role === "SuperAdmin"),
+        ? Boolean(currentUser?.role === "superadmin" || u.role === "superadmin")
+        : Boolean(u.role === "superadmin"),
       isAdmin: isCurrent
-        ? Boolean(currentUser?.role === "Admin" || u.role === "Admin" || currentUser?.role === "SuperAdmin")
-        : Boolean(u.role === "Admin"),
+        ? Boolean(currentUser?.role === "admin" || u.role === "admin" || currentUser?.role === "superadmin")
+        : Boolean(u.role === "admin"),
     };
   });
 
@@ -65,7 +65,7 @@ export default function AdminSidebar({
     adminUsers.length > 0
       ? adminUsers
       : currentUser &&
-          (currentUser.role === "Admin" || currentUser.role === "SuperAdmin")
+          (currentUser.role === "admin" || currentUser.role === "superadmin")
         ? [currentUser]
         : [];
 
@@ -78,17 +78,17 @@ export default function AdminSidebar({
     e.stopPropagation();
     setUpdatingId(userId);
     try {
-      const res = await toggleAdminStatus(userId);
+      await toggleAdminStatus(userId);
       queryClient.invalidateQueries({ queryKey: ["allUsers"] });
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["userProfile", userId] });
       queryClient.invalidateQueries({ queryKey: ["authMe"] });
       toast.success(
         isArabic
-          ? `اترجع ${username} يوزر عادي`
+          ? `اترجع ${username} لطالب`
           : `${username} removed from admin.`,
       );
-    } catch (err: any) {
+    } catch {
       toast.error(
         isArabic
           ? "حصل خطأ أثناء تعديل الصلاحية"
@@ -143,29 +143,29 @@ export default function AdminSidebar({
           </span>
         </Link>
 
-        {/* Posts Route Link */}
+        {/* Subjects Route Link */}
         <Link
-          href="/admin/dashboard/posts"
+          href="/admin/dashboard/subjects"
           className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${
-            isPostsActive
+            isSubjectsActive
               ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
               : "text-textSecondary hover:text-textPrimary hover:bg-bgSecondary/90"
           }`}
         >
           <div className="flex items-center gap-2.5">
-            <FileText className="h-4 w-4" />
+            <BookOpen className="h-4 w-4" />
             <Text
               as="span"
               size="xs"
               font="semiBold"
-              color={isPostsActive ? "white" : "primary"}
+              color={isSubjectsActive ? "white" : "primary"}
             >
-              {t.admin.postsManagement}
+              {isArabic ? "المواد الدراسية" : "Subjects"}
             </Text>
           </div>
           <span
             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              isPostsActive
+              isSubjectsActive
                 ? "bg-white/20 text-white"
                 : "bg-borderPrimary/40 text-textSecondary"
             }`}
@@ -191,9 +191,9 @@ export default function AdminSidebar({
           <div className="space-y-1">
             {displayAdmins.map((adminItem) => {
               const isOwner = Boolean(
-                adminItem.role === "SuperAdmin" ||
+                adminItem.role === "superadmin" ||
                   (currentUser &&
-                    currentUser.role === "SuperAdmin" &&
+                    currentUser.role === "superadmin" &&
                     (currentUser._id === adminItem._id ||
                       (currentUser as any).id === adminItem._id ||
                       (currentUser.username &&
@@ -250,8 +250,8 @@ export default function AdminSidebar({
                     </div>
                   </Link>
 
-                  {/* Right: Remove Admin button - only visible to superAdmin, hidden for owner */}
-                  {currentUser?.role === "SuperAdmin" && !isOwner && adminItem._id && (
+                  {/* Right: Remove Admin button - only visible to superadmin, hidden for owner */}
+                  {currentUser?.role === "superadmin" && !isOwner && adminItem._id && (
                     <Tooltip
                       position="top"
                       content={t.admin.removeAdmin}

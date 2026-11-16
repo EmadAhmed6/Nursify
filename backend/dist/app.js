@@ -1,10 +1,12 @@
 import dotenv from "dotenv";
 import express from "express";
+import http from "http";
 import connectToDB from "./config/db.js";
 import { notFound, errorHandler } from "./middlewares/errors.js";
 import auth from "./modules/auth/auth.routes.js";
 import users from "./modules/user/user.routes.js";
-import posts from "./modules/posts/post.routes.js";
+import subjects from "./modules/subjects/subject.routes.js";
+import stories from "./modules/stories/story.routes.js";
 import notifications from "./modules/notifications/notifications.routes.js";
 import helmet from "helmet";
 import cors from "cors";
@@ -16,9 +18,13 @@ import passport from "passport";
 import configurePassport from "./config/passport.js";
 import cookieParser from "cookie-parser";
 import chat from "./modules/chat/chat.routes.js";
+import { initSocket } from "./config/socket.js";
 dotenv.config();
 const app = express();
+const server = http.createServer(app);
 connectToDB();
+// Initialize Socket.io attached to the HTTP server
+initSocket(server, process.env.FRONTEND_URL || "http://localhost:3000");
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
@@ -34,14 +40,15 @@ app.use(passport.session());
 configurePassport();
 app.use("/auth", auth);
 app.use("/users", apiLimiter, users);
-app.use("/posts", apiLimiter, posts);
+app.use("/subjects", apiLimiter, subjects);
 app.use("/notifications", notifications);
 app.use("/chat", chat);
+app.use("/stories", stories);
 app.use("/api-docs", swaggerui.serve, swaggerui.setup(spacs));
 app.use(notFound);
 app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
 //# sourceMappingURL=app.js.map

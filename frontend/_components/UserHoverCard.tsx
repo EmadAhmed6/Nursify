@@ -30,7 +30,7 @@ interface UserHoverCardProps {
     jobTitle?: string;
     bio?: string;
     email?: string;
-    role?: "User" | "Admin" | "SuperAdmin";
+    role?: "student" | "admin" | "superadmin";
     profilePicture?: {
       url?: string;
     };
@@ -64,7 +64,7 @@ export default function UserHoverCard({
     e.stopPropagation();
     if (!user?._id) return;
     setIsUpdating(true);
-    const newStatus = user.role !== "Admin";
+    const newStatus = user.role !== "admin";
     try {
       const res = await toggleAdminStatus(user._id);
       queryClient.invalidateQueries({ queryKey: ["allUsers"] });
@@ -77,10 +77,10 @@ export default function UserHoverCard({
         isArabic
           ? newStatus
             ? `اتعمل ${displayName} أدمن`
-            : `اترجع ${displayName} يوزر عادي`
+            : `اترجع ${displayName} طالب`
           : newStatus
             ? "Promoted to Admin!"
-            : "Removed from Admin!",
+            : "Returned to Student!",
       );
     } catch (err: any) {
       toast.error(
@@ -131,12 +131,12 @@ export default function UserHoverCard({
               {formattedUsername}
             </Text>
           )}
-          {user.role === "SuperAdmin" ? (
+          {user.role === "superadmin" ? (
             <span className="text-[9px] font-extrabold uppercase tracking-wider  mt-0.5 text-amber-400 flex items-center gap-1">
               <Crown className="h-2.5 w-2.5 text-amber-400 inline" />
               {t.profile.owner}
             </span>
-          ) : user.role === "Admin" ? (
+          ) : user.role === "admin" ? (
             <span className="text-[9px] font-bold text-amber-500 uppercase tracking-wider block mt-0.5">
               {t.admin.admin}
             </span>
@@ -144,8 +144,8 @@ export default function UserHoverCard({
         </div>
       </Link>
 
-      {/* Toggle Admin: visible only to superAdmin, not on superAdmin targets */}
-      {currentUser?.role === "SuperAdmin" && user.role !== "SuperAdmin" && (
+      {/* Toggle Admin: visible only to superadmin, not on superadmin targets */}
+      {currentUser?.role === "superadmin" && user.role !== "superadmin" && (
         <div className="pt-2 border-t border-borderPrimary/20">
           <button
             type="button"
@@ -155,7 +155,7 @@ export default function UserHoverCard({
           >
             {isUpdating ? (
               <Loader2 className="h-3 w-3 animate-spin" />
-            ) : user.role === "Admin" ? (
+            ) : user.role === "admin" ? (
               <>
                 <ShieldAlert className="h-3 w-3" />
                 <span>{t.profile.removeAdmin}</span>
@@ -170,8 +170,8 @@ export default function UserHoverCard({
         </div>
       )}
 
-      {/* Edit User: visible to admins (with restriction on superAdmin targets unless currentUser is superAdmin) */}
-      {(currentUser?.role === "SuperAdmin" || (currentUser?.role === "Admin" && user.role !== "SuperAdmin")) && (
+      {/* Edit User: visible to admins (with restriction on superadmin targets unless currentUser is superadmin) */}
+      {(currentUser?.role === "superadmin" || (currentUser?.role === "admin" && user.role !== "superadmin")) && (
         <div className="pt-2 border-t border-borderPrimary/20">
           <button
             type="button"

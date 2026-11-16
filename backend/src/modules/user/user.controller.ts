@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from "express";
 import asyncHandler from "express-async-handler";
-import { v2 as cloudinary } from "cloudinary";
+import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 import {
   User,
   validateChangePassword,
@@ -86,76 +86,7 @@ const getUserById = asyncHandler(
 
     const user = await User.findById(targetUserId)
       .select("-password")
-      .populate({
-        path: "posts",
-        populate: [
-          {
-            path: "user",
-            select: [
-              "_id",
-              "fullName",
-              "username",
-              "profilePicture",
-              "jobTitle",
-            ],
-          },
-          {
-            path: "likes",
-            select: [
-              "_id",
-              "fullName",
-              "username",
-              "profilePicture",
-              "jobTitle",
-            ],
-          },
-          {
-            path: "shares",
-            select: [
-              "_id",
-              "fullName",
-              "username",
-              "profilePicture",
-              "jobTitle",
-            ],
-          },
-          {
-            path: "sharedPost",
-            populate: [
-              {
-                path: "user",
-                select: [
-                  "_id",
-                  "fullName",
-                  "username",
-                  "profilePicture",
-                  "jobTitle",
-                ],
-              },
-              {
-                path: "likes",
-                select: [
-                  "_id",
-                  "fullName",
-                  "username",
-                  "profilePicture",
-                  "jobTitle",
-                ],
-              },
-              {
-                path: "shares",
-                select: [
-                  "_id",
-                  "fullName",
-                  "username",
-                  "profilePicture",
-                  "jobTitle",
-                ],
-              },
-            ],
-          },
-        ],
-      });
+      .populate("subjects");
 
     if (!user) {
       sendError(res, 404, "User not found");
@@ -245,9 +176,9 @@ const updateUser = asyncHandler(
       }
     }
     const isOwner = req.user?.id === req.params.userId;
-    const isSuperAdmin = req.user?.role === "SuperAdmin";
+    const isSuperAdmin = req.user?.role === "superadmin";
 
-    if (user.role === "SuperAdmin" && !isOwner && !isSuperAdmin) {
+    if (user.role === "superadmin" && !isOwner && !isSuperAdmin) {
       res.status(403).json({
         success: false,
         message: "Request failed",
@@ -263,40 +194,75 @@ const updateUser = asyncHandler(
 
     let userImage: { url: string; publicId: string | null } | undefined =
       undefined;
+
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
-      userImage = {
-        url: result.secure_url,
-        publicId: result.public_id,
-      };
-      fs.unlinkSync(req.file.path);
+      if (!req.file.mimetype.startsWith("image/")) {
+        if (req.file.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        res.status(400).json({
+          success: false,
+          message: "Invalid file format. Profile picture must be an image (JPEG, PNG, WEBP, etc.)",
+        });
+        return;
+      }
+
+      try {
+        const result = await uploadToCloudinary(req.file, "nursify/users", {
+          resource_type: "image",
+        });
+        userImage = {
+          url: result.secure_url,
+          publicId: result.public_id,
+        };
+      } catch (error: any) {
+        console.error("Cloudinary/Server Error:", error);
+        res.status(500).json({
+          success: false,
+          message: error.message || "Failed to upload avatar image",
+          ...(process.env.NODE_ENV !== "production" && { stack: error.stack }),
+        });
+        return;
+      } finally {
+        if (req.file.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      }
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.userId,
-      {
-        $set: {
-          fullName: req.body.fullName,
-          username: req.body.username,
-          ...(user.provider === "local"
-            ? { email: req.body.email, password: req.body.password }
-            : {}),
-          jobTitle: req.body.jobTitle,
-          ...(userImage ? { profilePicture: userImage } : {}),
-          bio: req.body.bio,
+    try {
+      const updatedUser = await User.findByIdAndUpdate(
+        req.params.userId,
+        {
+          $set: {
+            fullName: req.body.fullName,
+            username: req.body.username,
+            ...(user.provider === "local"
+              ? { email: req.body.email, password: req.body.password }
+              : {}),
+            jobTitle: req.body.jobTitle,
+            ...(userImage ? { profilePicture: userImage } : {}),
+            bio: req.body.bio,
+          },
         },
-      },
-      { returnDocument: "after", runValidators: true },
-    )
-      .select("-password")
-      .select("+email");
+        { returnDocument: "after", runValidators: true },
+      )
+        .select("-password")
+        .select("+email");
 
-    res.status(200).json({
-      success: true,
-      message: "Request processed successfully",
-      data: updatedUser,
-    });
-    return;
+      res.status(200).json({
+        success: true,
+        message: "Request processed successfully",
+        data: updatedUser,
+      });
+      return;
+    } catch (error: any) {
+      console.error("Cloudinary/Server Error:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to update user profile",
+        ...(process.env.NODE_ENV !== "production" && { stack: error.stack }),
+      });
+      return;
+    }
   },
 );
 
@@ -313,7 +279,7 @@ const deleteProfileImage = asyncHandler(
       return;
     }
     const isOwner = req.user?.id === req.params.userId;
-    const isSuperAdmin = req.user?.role === "SuperAdmin";
+    const isSuperAdmin = req.user?.role === "superadmin";
     if (!isOwner && !isSuperAdmin) {
       res.status(403).json({
         success: false,
@@ -331,7 +297,7 @@ const deleteProfileImage = asyncHandler(
       return;
     }
     if (user.profilePicture?.publicId) {
-      await cloudinary.uploader.destroy(user.profilePicture.publicId);
+      await deleteFromCloudinary(user.profilePicture.publicId);
     }
     const updatedUser = await User.findByIdAndUpdate(
       req.params.userId,
@@ -352,9 +318,9 @@ const deleteUser = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const user = await User.findById(req.params.userId);
     if (
-      user?.role === "SuperAdmin" &&
+      user?.role === "superadmin" &&
       req.user?.id !== req.params.userId &&
-      req.user?.role !== "SuperAdmin"
+      req.user?.role !== "superadmin"
     ) {
       res.status(403).json({
         success: false,
@@ -434,7 +400,8 @@ const changePassword = asyncHandler(
 // TOGGLE USER ADMIN
 const toggleAdminStatus = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const user = await User.findById(req.params.userId);
+    const userId = req.params.userId;
+    const user = await User.findById(userId);
     if (!user) {
       res.status(404).json({
         success: false,
@@ -443,13 +410,21 @@ const toggleAdminStatus = asyncHandler(
       });
       return;
     }
-    user.role = user.role === "Admin" ? "User" : "Admin";
-    await user.save();
+    const newRole = user.role === "admin" ? "student" : "admin";
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          role: newRole,
+        },
+      },
+      { returnDocument: "after", runValidators: true },
+    );
     res.status(200).json({
       success: true,
       message: "Request processed successfully",
       data: {
-        message: `User status changed to ${user.role}`,
+        message: `User status changed to ${newRole}`,
       },
     });
     return;
@@ -771,6 +746,69 @@ const unblockUser = asyncHandler(
   },
 );
 
+// ===========================
+// LEADERBOARD (Top Ranked Users)
+// ===========================
+
+interface LeaderboardCacheEntry {
+  data: unknown[];
+  expires: number;
+}
+
+let leaderboardCache: LeaderboardCacheEntry | null = null;
+const LEADERBOARD_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
+const getLeaderboard = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user?.id;
+    const now = Date.now();
+
+    let top10;
+    if (leaderboardCache && leaderboardCache.expires > now) {
+      top10 = leaderboardCache.data;
+    } else {
+      const users = await User.find({})
+        .select("fullName username profilePicture jobTitle points")
+        .sort({ points: -1 })
+        .limit(10)
+        .lean();
+      top10 = users.map((u: any) => ({
+        ...u,
+        points: typeof u.points === "number" ? u.points : 0,
+      }));
+      leaderboardCache = { data: top10, expires: now + LEADERBOARD_CACHE_TTL };
+    }
+
+    let currentUserRank: number | null = null;
+    let currentUserData: Record<string, unknown> | null = null;
+
+    if (userId) {
+      const foundUser = (await User.findById(userId)
+        .select("fullName username profilePicture jobTitle points")
+        .lean()) as any;
+      if (foundUser) {
+        foundUser.points = typeof foundUser.points === "number" ? foundUser.points : 0;
+        currentUserData = foundUser;
+        const higherCount = await User.countDocuments({
+          points: { $gt: foundUser.points },
+        });
+        currentUserRank = higherCount + 1;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        top10,
+        currentUser: currentUserData
+          ? { ...currentUserData, rank: currentUserRank }
+          : null,
+      },
+    });
+    return;
+  },
+);
+
 export {
   getAllUsers,
   getUserById,
@@ -785,4 +823,5 @@ export {
   blockUser,
   unblockUser,
   getBlockedUsers,
+  getLeaderboard,
 };

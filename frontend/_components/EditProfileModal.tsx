@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   editProfileSchema,
   type IEditProfile,
-} from "@/_features/posts/schemas/post";
+} from "@/_features/user/schema/editProfile";
 import { useUpdateUser } from "@/_features/user/hooks";
 import Error from "@/_components/Error";
 import { Text } from "@/_components/Text";

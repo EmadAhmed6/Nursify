@@ -14,16 +14,23 @@ import {
   type IRegisterUser,
   type IResetPassword,
   type IUserSchema,
+  type UserRole,
+  type UserProvider,
+  UserRoleSchema,
+  UserProviderSchema,
 } from "./user.schema.js";
+
+export { type UserRole, type UserProvider, UserRoleSchema, UserProviderSchema };
 
 interface IUser extends Document, IUserSchema {
   generateToken: () => string;
   refreshToken: string;
   generateRefreshToken: () => string;
   isVerified: boolean;
-  postsCount: number;
-  role: "User" | "Admin" | "SuperAdmin";
-  provider: "local" | "google" | "github";
+  subjectsCount?: number;
+  points: number;
+  role: UserRole;
+  provider: UserProvider;
   following: Types.ObjectId[];
   followers: Types.ObjectId[];
   blockUsers: Types.ObjectId[];
@@ -61,17 +68,18 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["User", "Admin", "SuperAdmin"],
-      default: "User",
+      enum: ["student", "admin", "superadmin", "Student", "Admin", "SuperAdmin"],
+      set: (v: string) => (v ? v.toLowerCase() : "student"),
+      default: "student",
     },
     provider: {
       type: String,
-      enum: ["local", "google", "github"],
+      enum: ["local", "google"],
       default: "local",
     },
     jobTitle: {
       type: String,
-      default: "User",
+      default: "Student",
       trim: true,
       maxLength: 50,
     },
@@ -80,9 +88,14 @@ const userSchema = new Schema<IUser>(
       trim: true,
       maxLength: 250,
     },
-    postsCount: {
+    subjectsCount: {
       type: Number,
       default: 0,
+    },
+    points: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     otp: {
       type: String,
@@ -142,13 +155,16 @@ const userSchema = new Schema<IUser>(
     timestamps: true,
     toJSON: {
       virtuals: true,
+      getters: true,
     },
-    toObject: { virtuals: true },
+    toObject: { virtuals: true, getters: true },
   },
 );
-userSchema.virtual("posts", {
-  ref: "Post",
-  foreignField: "user",
+userSchema.index({ points: -1, updatedAt: 1 });
+
+userSchema.virtual("subjects", {
+  ref: "Subject",
+  foreignField: "createdBy",
   localField: "_id",
 });
 

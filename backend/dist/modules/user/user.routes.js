@@ -1,10 +1,12 @@
 import express from "express";
-import { getAllUsers, getUserById, updateUser, deleteUser, toggleAdminStatus, changePassword, deleteProfileImage, toggleFollowUser, getUserFollowers, getUserFollowing, } from "./user.controller.js";
+import { getAllUsers, getUserById, updateUser, deleteUser, toggleAdminStatus, changePassword, deleteProfileImage, toggleFollowUser, getUserFollowers, getUserFollowing, blockUser, unblockUser, getBlockedUsers, getLeaderboard, } from "./user.controller.js";
 import { verifyToken, verifyAuthorizedToken, verifySuperAdminToken, } from "../../middlewares/verifyToken.js";
 import upload from "../../middlewares/multer.js";
 import { authLimiter } from "../../middlewares/limiter.js";
 const router = express.Router();
 router.route("/").get(verifyToken, getAllUsers);
+router.get("/leaderboard", verifyToken, getLeaderboard);
+router.get("/blocked-users", verifyToken, getBlockedUsers);
 router.patch("/:userId/toggle-admin", verifySuperAdminToken, toggleAdminStatus);
 router
     .route("/:userId")
@@ -12,6 +14,8 @@ router
     .put(verifyAuthorizedToken, upload.single("profilePicture"), updateUser)
     .delete(verifyAuthorizedToken, deleteUser);
 router.delete("/:userId/profile-image", verifyAuthorizedToken, deleteProfileImage);
+router.patch("/:userId/block", verifyToken, blockUser);
+router.patch("/:userId/unblock", verifyToken, unblockUser);
 router.post("/:userId/change-password", authLimiter, verifyAuthorizedToken, changePassword);
 router.get("/:userId/followers", verifyToken, getUserFollowers);
 router.get("/:userId/following", verifyToken, getUserFollowing);

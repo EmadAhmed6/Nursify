@@ -22,7 +22,9 @@ const getStoryErrorMessage = (error: unknown) => {
       };
     };
   };
-  return details?.response?.data?.data?.message || details?.response?.data?.message;
+  return (
+    details?.response?.data?.data?.message || details?.response?.data?.message
+  );
 };
 
 export const useGetStoryTimeline = (enabled = true) => {
@@ -63,10 +65,7 @@ export const useCreateStory = () => {
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });
     },
     onError: (error: unknown) => {
-      appToast.error(
-        getStoryErrorMessage(error) ||
-          "Failed to share story.",
-      );
+      appToast.error(getStoryErrorMessage(error) || "Failed to share story.");
     },
   });
 };
@@ -119,8 +118,7 @@ export const useReactToStory = () => {
     },
     onError: (error: unknown) => {
       appToast.error(
-        getStoryErrorMessage(error) ||
-          "Failed to react to story.",
+        getStoryErrorMessage(error) || "Failed to react to story.",
       );
     },
   });
@@ -151,10 +149,7 @@ export const useDeleteStory = () => {
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });
     },
     onError: (error: unknown) => {
-      appToast.error(
-        getStoryErrorMessage(error) ||
-          "Failed to delete story.",
-      );
+      appToast.error(getStoryErrorMessage(error) || "Failed to delete story.");
     },
   });
 };

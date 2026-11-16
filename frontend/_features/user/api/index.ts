@@ -12,4 +12,6 @@ export * from "./getUserFollowing";
 export * from "./blockUser";
 export * from "./unblockUser";
 export * from "./getBlockedUsers";
+export * from "./getLeaderboard";
+export * from "../types/user.types";
 

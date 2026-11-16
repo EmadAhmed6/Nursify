@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { Document, Schema, model, Types } from "mongoose";
-import { ChangePasswordSchema, ForgotPasswordSchema, LoginSchema, OtpSchema, RegisterSchema, ResetPasswordSchema, UpdateUserSchema, } from "./user.schema.js";
+import { ChangePasswordSchema, ForgotPasswordSchema, LoginSchema, OtpSchema, RegisterSchema, ResetPasswordSchema, UpdateUserSchema, UserRoleSchema, UserProviderSchema, } from "./user.schema.js";
+export { UserRoleSchema, UserProviderSchema };
 const userSchema = new Schema({
     fullName: {
         type: String,
@@ -30,17 +31,18 @@ const userSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ["User", "Admin", "SuperAdmin"],
-        default: "User",
+        enum: ["student", "admin", "superadmin", "Student", "Admin", "SuperAdmin"],
+        set: (v) => (v ? v.toLowerCase() : "student"),
+        default: "student",
     },
     provider: {
         type: String,
-        enum: ["local", "google", "github"],
+        enum: ["local", "google"],
         default: "local",
     },
     jobTitle: {
         type: String,
-        default: "User",
+        default: "Student",
         trim: true,
         maxLength: 50,
     },
@@ -49,9 +51,14 @@ const userSchema = new Schema({
         trim: true,
         maxLength: 250,
     },
-    postsCount: {
+    subjectsCount: {
         type: Number,
         default: 0,
+    },
+    points: {
+        type: Number,
+        default: 0,
+        min: 0,
     },
     otp: {
         type: String,
@@ -90,16 +97,34 @@ const userSchema = new Schema({
             ref: "User",
         },
     ],
+    isBlocked: {
+        type: Boolean,
+        default: false,
+    },
+    blockUsers: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+        },
+    ],
+    blockedByUsers: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+        },
+    ],
 }, {
     timestamps: true,
     toJSON: {
         virtuals: true,
+        getters: true,
     },
-    toObject: { virtuals: true },
+    toObject: { virtuals: true, getters: true },
 });
-userSchema.virtual("posts", {
-    ref: "Post",
-    foreignField: "user",
+userSchema.index({ points: -1, updatedAt: 1 });
+userSchema.virtual("subjects", {
+    ref: "Subject",
+    foreignField: "createdBy",
     localField: "_id",
 });
 userSchema.methods.generateToken = function () {

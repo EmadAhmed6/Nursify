@@ -42,7 +42,6 @@ export interface AuthTranslations {
   resendEmail: string;
   enter6DigitCode: string;
   alreadyVerified: string;
-  continueWithGithub: string;
   continueWithGoogle: string;
   orDivider: string;
   loginIdentifierLabel: string;
@@ -95,7 +94,6 @@ export const authTranslations: Record<Language, AuthTranslations> = {
     resendEmail: "Resend Email",
     enter6DigitCode: "Enter 6-Digit Code",
     alreadyVerified: "Already verified?",
-    continueWithGithub: "Continue with GitHub",
     continueWithGoogle: "Continue with Google",
     orDivider: "OR",
   },
@@ -143,7 +141,6 @@ export const authTranslations: Record<Language, AuthTranslations> = {
     resendEmail: "عادة إرسال الإيميل",
     enter6DigitCode: "ادخل كود الـ 6 أرقام",
     alreadyVerified: "مـتأكد بالفعل؟",
-    continueWithGithub: "متابعة بواسطة GitHub",
     continueWithGoogle: "متابعة بواسطة Google",
     orDivider: "أو",
   },

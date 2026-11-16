@@ -2,7 +2,6 @@ import express, {} from "express";
 import asyncHandler from "express-async-handler";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
 import { validateRegisterUser, User, validateLoginUser, validateResetPassword, validateForgotPassword, validateVerifyOtp, } from "../user/user.model.js";
 import { generateOtpEmailHtml, generateResetPasswordEmailHtml, sendEmail, } from "../../config/Email.js";
 // REGISTER USER
@@ -58,6 +57,7 @@ const register = asyncHandler(async (req, res) => {
         username: req.body.username,
         email: req.body.email,
         password: req.body.password,
+        role: "student",
         isVerified: false,
         otp: generatedOtp,
         otpExpired,
@@ -70,7 +70,7 @@ const register = asyncHandler(async (req, res) => {
     await finalUser.save({ validateBeforeSave: false });
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.ENV === "production",
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -318,83 +318,18 @@ const getMe = asyncHandler(async (req, res) => {
     }
     const user = await User.findById(userId)
         .select("-password")
-        .populate({
-        path: "posts",
-        populate: [
-            {
-                path: "user",
-                select: [
-                    "_id",
-                    "username",
-                    "fullName",
-                    "profilePicture",
-                    "jobTitle",
-                ],
-            },
-            {
-                path: "likes",
-                select: [
-                    "_id",
-                    "username",
-                    "fullName",
-                    "profilePicture",
-                    "jobTitle",
-                ],
-            },
-            {
-                path: "shares",
-                select: [
-                    "_id",
-                    "username",
-                    "fullName",
-                    "profilePicture",
-                    "jobTitle",
-                ],
-            },
-            {
-                path: "sharedPost",
-                populate: [
-                    {
-                        path: "user",
-                        select: [
-                            "_id",
-                            "username",
-                            "fullName",
-                            "profilePicture",
-                            "jobTitle",
-                        ],
-                    },
-                    {
-                        path: "likes",
-                        select: [
-                            "_id",
-                            "username",
-                            "fullName",
-                            "profilePicture",
-                            "jobTitle",
-                        ],
-                    },
-                    {
-                        path: "shares",
-                        select: [
-                            "_id",
-                            "username",
-                            "fullName",
-                            "profilePicture",
-                            "jobTitle",
-                        ],
-                    },
-                ],
-            },
-        ],
-    });
+        .populate("subjects");
     if (!user) {
         res
             .status(404)
             .json({ success: false, data: { message: "User not found" } });
         return;
     }
-    res.status(200).json({ success: true, data: user });
+    const userObj = user.toObject();
+    if (userObj.role) {
+        userObj.role = userObj.role.toLowerCase();
+    }
+    res.status(200).json({ success: true, data: userObj });
     return;
 });
 // LOGOUT USER

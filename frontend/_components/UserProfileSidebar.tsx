@@ -24,7 +24,7 @@ export default function UserProfileSidebar({
 }: UserProfileSidebarProps) {
   const [mounted, setMounted] = useState(false);
   const { data: currentUser, isLoading } = useGetAuthMeQuery();
-  const { t } = useLanguage();
+  const { t, isArabic } = useLanguage();
 
   useEffect(() => {
     setMounted(true);
@@ -126,12 +126,12 @@ export default function UserProfileSidebar({
             {currentUser.isVerified && (
               <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
             )}
-            {currentUser.role === "SuperAdmin" ? (
+            {currentUser.role === "superadmin" ? (
               <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full text-amber-400 border border-amber-400/40 flex items-center gap-1.5 w-fit">
                 <Crown className="h-3 w-3 text-amber-400" />
                 {t.profile.owner}
               </span>
-            ) : currentUser.role === "Admin" ? (
+            ) : currentUser.role === "admin" ? (
               <span className="text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-500 border border-amber-500/20">
                 {t.profile.admin}
               </span>
@@ -164,11 +164,11 @@ export default function UserProfileSidebar({
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
             <Text as="span" size="xs" font="medium" color="secondary">
-              {t.profile.articlesPublished || "Total Posts"}
+              {isArabic ? "المواد الدراسية" : "Subjects"}
             </Text>
           </div>
           <Text as="span" size="xs" font="bold" color="primary">
-            {currentUser.postsCount || 0}
+            {currentUser.subjectsCount ?? (currentUser as any).postsCount ?? 0}
           </Text>
         </div>
       </div>

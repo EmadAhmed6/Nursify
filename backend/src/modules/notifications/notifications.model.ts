@@ -1,20 +1,13 @@
-import mongoose, { Schema, model, Types } from "mongoose";
+import mongoose, { Schema, model, Types, type Document } from "mongoose";
 
-interface INotification extends Document {
+export interface INotification extends Document {
   recipient: Types.ObjectId;
   sender: Types.ObjectId;
-  type:
-    | "follow"
-    | "comment"
-    | "like"
-    | "share"
-    | "reply"
-    | "like_comment"
-    | "like_reply";
-  post?: Types.ObjectId;
-  comment?: Types.ObjectId;
-  reply?: Types.ObjectId;
+  type: "follow" | "subject_update" | "system";
+  subject?: Types.ObjectId;
   isRead: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const NotificationSchema = new Schema<INotification>(
@@ -31,31 +24,12 @@ const NotificationSchema = new Schema<INotification>(
     },
     type: {
       type: String,
-      enum: [
-        "follow",
-        "comment",
-        "like",
-        "share",
-        "reply",
-        "like_comment",
-        "like_reply",
-      ],
+      enum: ["follow", "subject_update", "system"],
       required: true,
     },
-    post: {
-
+    subject: {
       type: mongoose.Schema.ObjectId,
-      ref: "Post",
-      required: false,
-    },
-    comment: {
-      type: mongoose.Schema.ObjectId,
-      ref: "Comment",
-      required: false,
-    },
-    reply: {
-      type: mongoose.Schema.ObjectId,
-      ref: "Reply",
+      ref: "Subject",
       required: false,
     },
     isRead: {

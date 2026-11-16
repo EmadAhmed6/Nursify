@@ -17,11 +17,11 @@ import {
   X,
   Crown,
   MessageSquare,
+  Trophy,
 } from "lucide-react";
 import Cookies from "js-cookie";
 import { useGetAuthMeQuery, useLogout } from "@/_features/auth/hooks";
 import { useGetAllUsers } from "@/_features/user/hooks";
-import { useGetConversations } from "@/_features/chat";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/_components/Text";
 import Tooltip from "@/_components/Tooltip";
@@ -46,15 +46,6 @@ const Navbar = () => {
   const token = Cookies.get("token");
   const { data: user } = useGetAuthMeQuery();
   const { data: allUsers } = useGetAllUsers();
-  const { data: chatConversations } = useGetConversations();
-
-  const totalUnreadMessages = React.useMemo(() => {
-    if (!Array.isArray(chatConversations)) return 0;
-    return chatConversations.reduce(
-      (acc, curr) => acc + (curr.unreadCount || 0),
-      0,
-    );
-  }, [chatConversations]);
 
   const logout = useLogout();
   const router = useRouter();
@@ -275,9 +266,9 @@ const Navbar = () => {
                       >
                         {displayName}
                       </Text>
-                      {u.role === "SuperAdmin" ? (
+                      {u.role === "superadmin" ? (
                         <Crown className="h-3 w-3 text-amber-400 shrink-0 inline" />
-                      ) : u.role === "Admin" ? (
+                      ) : u.role === "admin" ? (
                         <span className="text-[9px] font-extrabold text-amber-500 bg-amber-500/10 px-1 rounded border border-amber-500/20 shrink-0">
                           {t.admin.admin}
                         </span>
@@ -318,7 +309,7 @@ const Navbar = () => {
             color="primary"
             className="inline-block"
           >
-            Fluxion
+            Nursify
           </Text>
         </Link>
 
@@ -409,7 +400,7 @@ const Navbar = () => {
           {/* Admin Dashboard Quick Button */}
           {mounted &&
             token &&
-            (user?.role === "Admin" || user?.role === "SuperAdmin") && (
+            (user?.role === "admin" || user?.role === "superadmin") && (
               <Tooltip position="bottom" content={t.nav.adminDashboard}>
                 <Link href="/admin/dashboard/users">
                   <button
@@ -430,27 +421,25 @@ const Navbar = () => {
               </Tooltip>
             )}
 
-          {/* Notifications Dropdown */}
-          {mounted && token && <NotificationDropdown />}
-
-          {/* Messages / Chat Link */}
+          {/* Leaderboard Button (Desktop) */}
           {mounted && token && (
-            <Tooltip position="bottom" content={t.nav.messages}>
-              <Link href="/chat">
+            <Tooltip
+              position="bottom"
+              content={isArabic ? "المتصدرين" : "Leaderboard"}
+            >
+              <Link href="/leaderboard">
                 <button
-                  className="relative p-2 rounded-xl bg-bgSecondary/60 hover:bg-bgSecondary border border-borderPrimary/40 text-textSecondary hover:text-textPrimary transition-all cursor-pointer"
-                  aria-label="Messages"
+                  className="hidden md:flex p-2 rounded-xl bg-bgSecondary/60 hover:bg-bgSecondary border border-borderPrimary/40 text-textSecondary hover:text-amber-400 transition-all cursor-pointer"
+                  aria-label="Leaderboard"
                 >
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  {totalUnreadMessages > 0 && (
-                    <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-primary text-white text-[9px] font-extrabold flex items-center justify-center animate-pulse shadow-xs">
-                      {totalUnreadMessages > 9 ? "9+" : totalUnreadMessages}
-                    </span>
-                  )}
+                  <Trophy className="h-4 w-4" />
                 </button>
               </Link>
             </Tooltip>
           )}
+
+          {/* Notifications Dropdown */}
+          {mounted && token && <NotificationDropdown />}
 
           {/* User Dropdown / Auth Links */}
           {mounted &&
@@ -523,8 +512,8 @@ const Navbar = () => {
                       </Text>
                     </Link>
 
-                    {(user?.role === "Admin" ||
-                      user?.role === "SuperAdmin") && (
+                    {(user?.role === "admin" ||
+                      user?.role === "superadmin") && (
                       <Link
                         href="/admin/dashboard/users"
                         onClick={() => setDropdownOpen(false)}
@@ -678,7 +667,7 @@ const Navbar = () => {
           </div>
 
           {/* Admin Dashboard button on Mobile */}
-          {token && (user?.role === "Admin" || user?.role === "SuperAdmin") && (
+          {token && (user?.role === "admin" || user?.role === "superadmin") && (
             <Link
               href="/admin/dashboard/users"
               onClick={() => setMobileMenuOpen(false)}
@@ -689,25 +678,21 @@ const Navbar = () => {
             </Link>
           )}
 
+          {/* Leaderboard on Mobile */}
+          {token && (
+            <Link
+              href="/leaderboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-500 font-bold text-xs"
+            >
+              <Trophy className="h-4 w-4" />
+              <span>{isArabic ? "المتصدرين" : "Leaderboard"}</span>
+            </Link>
+          )}
+
           {/* User Links on Mobile */}
           {token ? (
             <div className="pt-2 border-t border-borderPrimary/40 space-y-2">
-              <Link
-                href="/chat"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-bgSecondary/60 hover:bg-bgSecondary text-xs font-semibold text-textPrimary transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  <span>{t.nav.messages}</span>
-                </div>
-                {totalUnreadMessages > 0 && (
-                  <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
-                    {totalUnreadMessages}
-                  </span>
-                )}
-              </Link>
-
               <Link
                 href={`/profile/${user?._id || "me"}`}
                 onClick={() => setMobileMenuOpen(false)}

@@ -1,4 +1,11 @@
 import { z } from "zod";
+
+export const UserRoleSchema = z.enum(["student", "admin", "superadmin"]);
+export type UserRole = z.infer<typeof UserRoleSchema>;
+
+export const UserProviderSchema = z.enum(["local", "google"]);
+export type UserProvider = z.infer<typeof UserProviderSchema>;
+
 const passwordSchema = z
   .string()
   .min(6, "Password must be at least 6 characters")
@@ -7,6 +14,7 @@ const passwordSchema = z
     /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
     "Password must include uppercase, lowercase, and numbers",
   );
+
 const RegisterSchema = z.object({
   fullName: z.string().min(3).max(100),
   username: z
@@ -44,6 +52,7 @@ const LoginSchema = z
 const ForgotPasswordSchema = z.object({
   email: z.string().email(),
 });
+
 const OtpSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   otp: z.string().min(6, { message: "Otp Must be at least 6 digits" }),
@@ -76,6 +85,8 @@ const UserSchema = z.object({
     ),
   email: z.string().email().trim().min(4),
   password: passwordSchema,
+  role: UserRoleSchema.default("student"),
+  provider: UserProviderSchema.default("local"),
   profilePicture: z
     .object({
       url: z.string().url(),

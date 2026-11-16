@@ -1,4 +1,6 @@
 import { z } from "zod";
+export const UserRoleSchema = z.enum(["student", "admin", "superadmin"]);
+export const UserProviderSchema = z.enum(["local", "google"]);
 const passwordSchema = z
     .string()
     .min(6, "Password must be at least 6 characters")
@@ -59,6 +61,8 @@ const UserSchema = z.object({
         .regex(/^[a-zA-Z0-9_]+$/, "Username must contain only letters, numbers, and underscores"),
     email: z.string().email().trim().min(4),
     password: passwordSchema,
+    role: UserRoleSchema.default("student"),
+    provider: UserProviderSchema.default("local"),
     profilePicture: z
         .object({
         url: z.string().url(),

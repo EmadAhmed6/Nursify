@@ -92,18 +92,23 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     setIsOpen(false);
     if (onCloseMobileDrawer) onCloseMobileDrawer();
 
+    if (notif.subject) {
+      const subjectId =
+        typeof notif.subject === "object" && notif.subject !== null
+          ? (notif.subject as any)._id
+          : notif.subject;
+      if (subjectId) {
+        router.push(`/subjects/${subjectId}`);
+        return;
+      }
+    }
+
     if (notif.type === "follow" || !notif.post) {
       if (notif.sender?._id) {
         router.push(`/profile/${notif.sender._id}`);
       }
     } else {
-      const postId =
-        typeof notif.post === "object" && notif.post !== null
-          ? (notif.post as any)._id
-          : notif.post;
-      if (postId) {
-        router.push(`/posts/${postId}`);
-      } else if (notif.sender?._id) {
+      if (notif.sender?._id) {
         router.push(`/profile/${notif.sender._id}`);
       }
     }

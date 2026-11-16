@@ -3,10 +3,10 @@
 import React from "react";
 import { Mail, ExternalLink, ShieldCheck } from "lucide-react";
 import { Text } from "@/_components/Text";
-import { PostUserSummary } from "@/_features/posts/types/Post";
+import { UserProfile } from "@/_features/user/types/user.types";
 
 interface AuthorProfileTooltipProps {
-  user?: PostUserSummary | null;
+  user?: Partial<UserProfile> | null;
   userId?: string;
 }
 
@@ -19,7 +19,7 @@ export default function AuthorProfileTooltip({
   const avatarUrl = user?.profilePicture?.url;
   const jobTitle = user?.jobTitle;
   const email = (user as any)?.email;
-  const isAdmin = (user as any)?.role === "Admin" || (user as any)?.role === "SuperAdmin";
+  const isAdmin = (user as any)?.role === "admin" || (user as any)?.role === "superadmin";
 
   return (
     <div className="p-3 min-w-56 space-y-2.5">

@@ -10,6 +10,7 @@ import React, {
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -507,14 +508,26 @@ export default function StoriesTray({
         </section>
       ) : null}
 
-      {isCreateOpen && (
-        <div
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setIsCreateOpen(false);
-          }}
-        >
-          <div className="w-full max-w-md rounded-2xl border border-borderPrimary/60 bg-bgPrimary p-5 shadow-2xl">
+      <AnimatePresence>
+        {isCreateOpen && (
+          <motion.div
+            key="create-story-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setIsCreateOpen(false);
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 18 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="w-full max-w-md rounded-2xl border border-borderPrimary/60 bg-bgPrimary p-5 shadow-2xl"
+            >
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-base font-bold text-textPrimary">
                 {t.story.createStory}
@@ -591,22 +604,31 @@ export default function StoriesTray({
               )}
               {createMutation.isPending ? t.story.sharing : t.story.shareStory}
             </button>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {activeStory &&
         activeGroup &&
         typeof document !== "undefined" &&
         createPortal(
-          <div
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-2 sm:p-6"
             onClick={(event) => event.stopPropagation()}
             onMouseDown={(event) => {
               if (event.target === event.currentTarget) closeViewer();
             }}
           >
-            <div className="relative flex h-[min(92dvh,820px)] w-full max-w-[460px] flex-col overflow-hidden rounded-2xl bg-black shadow-2xl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 22 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 280, damping: 26 }}
+              className="relative flex h-[min(92dvh,820px)] w-full max-w-[460px] flex-col overflow-hidden rounded-2xl bg-black shadow-2xl"
+            >
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex gap-1 px-3 pt-3">
                 {activeGroup.stories.map((story, index) => (
                   <span
@@ -700,7 +722,13 @@ export default function StoriesTray({
                 </div>
               </div>
 
-              <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+              <motion.div
+                key={activeStory._id}
+                initial={{ opacity: 0, x: 14 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="relative flex flex-1 items-center justify-center overflow-hidden"
+              >
                 {activeStory.imageUrl ? (
                   <img
                     src={activeStory.imageUrl}
@@ -750,7 +778,7 @@ export default function StoriesTray({
                       {activeStory.title}
                     </p>
                   )}
-              </div>
+              </motion.div>
 
               <div className="z-20 border-t border-white/15 px-4 py-3 text-white">
                 <div className="flex items-center justify-between gap-2">
@@ -900,8 +928,8 @@ export default function StoriesTray({
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
-            </div>
-          </div>,
+            </motion.div>
+          </motion.div>,
           document.body,
         )}
     </>
